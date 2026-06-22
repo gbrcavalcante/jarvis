@@ -56,6 +56,17 @@ task-002: implement hotword detection with openwakeword
 task-003: implement transcription with faster-whisper
 ...
 
+## Active Feature Plan
+
+<!-- SPECKIT START -->
+Current feature: **002-add-preprocessor**
+Implementation plan: `specs/002-add-preprocessor/plan.md`
+Spec: `specs/002-add-preprocessor/spec.md`
+Data model: `specs/002-add-preprocessor/data-model.md`
+Contracts: `specs/002-add-preprocessor/contracts/`
+Quickstart: `specs/002-add-preprocessor/quickstart.md`
+<!-- SPECKIT END -->
+
 ## Do Not
 - Change the tech stack without explicit instruction
 - Install packages not in pyproject.toml

@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "structured-prompt",
+  "title": "StructuredPrompt",
+  "description": "Output of the JARVIS Pre-Processor Stage 2. Consumed by the Complexity Classifier.",
+  "type": "object",
+  "required": ["task", "context", "constraints", "expected_output", "incomplete"],
+  "additionalProperties": false,
+  "properties": {
+    "task": {
+      "type": "string",
+      "description": "What to delegate to the agent (Delegation + Discernment). Empty string only when input was empty."
+    },
+    "context": {
+      "type": "string",
+      "description": "Relevant background provided by the user (Description). May be empty string."
+    },
+    "constraints": {
+      "type": "string",
+      "description": "What the agent must avoid or follow (Description). May be empty string."
+    },
+    "expected_output": {
+      "type": "string",
+      "description": "Desired response format and detail level (Description). May be empty string."
+    },
+    "incomplete": {
+      "type": "boolean",
+      "description": "True when Diligence determined the prompt is missing critical context and requires user clarification before dispatch."
+    }
+  },
+  "examples": [
+    {
+      "task": "Book a flight to Lisbon on Friday",
+      "context": "Departure city not specified; budget constraint is 500 euros",
+      "constraints": "Budget must not exceed 500 euros",
+      "expected_output": "Flight options with price, airline, and departure time",
+      "incomplete": true
+    },
+    {
+      "task": "Set a timer for five minutes",
+      "context": "",
+      "constraints": "",
+      "expected_output": "Confirmation that the timer has been set",
+      "incomplete": false
+    }
+  ]
+}
