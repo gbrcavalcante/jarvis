@@ -59,12 +59,12 @@ task-003: implement transcription with faster-whisper
 ## Active Feature Plan
 
 <!-- SPECKIT START -->
-Current feature: **002-add-preprocessor**
-Implementation plan: `specs/002-add-preprocessor/plan.md`
-Spec: `specs/002-add-preprocessor/spec.md`
-Data model: `specs/002-add-preprocessor/data-model.md`
-Contracts: `specs/002-add-preprocessor/contracts/`
-Quickstart: `specs/002-add-preprocessor/quickstart.md`
+Current feature: **003-add-settings-config**
+Implementation plan: `specs/003-add-settings-config/plan.md`
+Spec: `specs/003-add-settings-config/spec.md`
+Data model: `specs/003-add-settings-config/data-model.md`
+Contracts: `specs/003-add-settings-config/contracts/`
+Quickstart: `specs/003-add-settings-config/quickstart.md`
 <!-- SPECKIT END -->
 
 ## Do Not

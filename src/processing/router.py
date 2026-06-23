@@ -10,13 +10,20 @@ import asyncio
 import time
 from dataclasses import dataclass, field
 
+from typing import Callable
+
 from src.agents.base import (
     AgentRequest, AgentResponse, BaseAgent,
     AllProvidersUnavailableError, ContentError, ProviderError,
 )
+from src.config.settings import BudgetConfig
 from src.memory.audit import get_logger
 
 _log = get_logger("processing.router")
+
+
+class BudgetExceededError(Exception):
+    """Raised when accumulated daily spend reaches the configured cap."""
 
 
 class CircuitBreaker:
@@ -55,15 +62,27 @@ class Router:
         agents: list[BaseAgent],
         circuit_breaker_threshold: int = 5,
         circuit_breaker_cooldown: float = 60.0,
+        budget_config: BudgetConfig | None = None,
+        on_budget_alert: Callable[[float, float], None] | None = None,
     ) -> None:
         self._agents = agents
         self._breakers: dict[str, CircuitBreaker] = {
             a.name: CircuitBreaker(circuit_breaker_threshold, circuit_breaker_cooldown)
             for a in agents
         }
+        self._budget_config = budget_config
+        self._on_budget_alert = on_budget_alert
+        self._accumulated_spend: float = 0.0
+        self._alert_fired: bool = False
+
+    def set_accumulated_spend(self, spend: float) -> None:
+        """Inject accumulated spend for testing or external sync."""
+        self._accumulated_spend = spend
+        self._alert_fired = False
 
     async def route(self, request: AgentRequest) -> AgentResponse:
         """Try each agent in order. Returns first successful response."""
+        self._check_budget()
         errors: list[str] = []
 
         for agent in self._agents:
@@ -98,3 +117,22 @@ class Router:
         raise AllProvidersUnavailableError(
             f"All providers failed: {'; '.join(errors)}"
         )
+
+    def _check_budget(self) -> None:
+        """Raise BudgetExceededError if cap reached; fire alert callback at threshold."""
+        cfg = self._budget_config
+        if cfg is None or cfg.daily_limit_usd == 0.0:
+            return
+        spend = self._accumulated_spend
+        limit = cfg.daily_limit_usd
+        if spend >= limit:
+            _log.warning("budget_cap_reached", spend=spend, limit=limit)
+            raise BudgetExceededError(
+                f"Daily budget of ${limit:.2f} reached (spent ${spend:.2f})"
+            )
+        threshold = limit * cfg.alert_threshold_pct / 100
+        if spend >= threshold and not self._alert_fired:
+            self._alert_fired = True
+            _log.warning("budget_alert", spend=spend, threshold=threshold, limit=limit)
+            if self._on_budget_alert:
+                self._on_budget_alert(spend, limit)

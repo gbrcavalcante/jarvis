@@ -28,7 +28,7 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     from src.audio.transcriber import Transcriber
     from src.audio.tts import TTSEngine
 
-    hotword_phrase = getattr(config, "hotword", "hey jarvis").replace(" ", "_")
+    hotword_phrase = config.hotword_config.phrase.replace(" ", "_")
     language_map = {"en-us": "en", "pt-br": "pt"}
     lang_cfg = getattr(getattr(config, "voice", None), "language", "en-us")
     language = language_map.get(lang_cfg, "en")
@@ -73,10 +73,37 @@ def _run_api() -> None:
     run_api()
 
 
+def _run_first_time_wizard() -> bool:
+    """Show the first-run wizard if no config exists. Returns True if setup completed."""
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    from src.ui.wizard import FirstRunWizard
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    wizard = FirstRunWizard()
+    wizard.show()
+    result = app.exec()
+    return result == 0
+
+
 def main() -> None:
-    config_path = Path("config.yaml")
+    default_path = Path.home() / ".jarvis" / "config.yaml"
+    fallback_path = Path("config.yaml")
+    config_path = default_path if default_path.exists() else (
+        fallback_path if fallback_path.exists() else None
+    )
+
+    # First-run: show wizard if no config exists
+    if config_path is None:
+        _log.info("first_run_detected")
+        completed = _run_first_time_wizard()
+        if not completed:
+            _log.info("wizard_aborted")
+            return
+        config_path = default_path
+
     try:
-        config = load_config(config_path if config_path.exists() else None)
+        config = load_config(config_path)
     except Exception as exc:
         print(f"[JARVIS] Config error: {exc}. Using defaults where possible.")
         from src.config.settings import JarvisConfig
@@ -88,7 +115,7 @@ def main() -> None:
         file=config.logging.file,
     )
 
-    _log.info("jarvis_starting", provider=config.provider, hotword=config.hotword)
+    _log.info("jarvis_starting", provider=config.provider, hotword=config.hotword_config.phrase)
 
     # Start API server in background thread
     api_thread = threading.Thread(target=_run_api, daemon=True)
