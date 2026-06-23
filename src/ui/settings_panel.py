@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeySequence, QShortcut
 
 from src.config.settings import JarvisConfig, ConfigError, save_config
 from src.ui.sections.base import SettingsSection
@@ -56,6 +57,21 @@ class SettingsPanel(QDialog):
         layout.addWidget(self._tabs)
         layout.addWidget(buttons)
         self.setLayout(layout)
+
+        self._add_tab_shortcuts()
+
+    def _add_tab_shortcuts(self) -> None:
+        """Alt+1 through Alt+0 switch to tabs 0–9."""
+        keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+        for i, key in enumerate(keys):
+            idx = i
+
+            def _switch(checked: bool = False, index: int = idx) -> None:
+                if index < self._tabs.count():
+                    self._tabs.setCurrentIndex(index)
+
+            sc = QShortcut(QKeySequence(f"Alt+{key}"), self)
+            sc.activated.connect(_switch)
 
     # ------------------------------------------------------------------
     # Section registration

@@ -229,16 +229,16 @@
 
 **Purpose**: Theme section, keyboard navigation, full panel integration test, security audit.
 
-- [ ] T070 [P] Write failing tests for `ThemeSection` (theme dropdown maps to Theme enum, tray animation maps to UIConfig, show_prompt_preview maps to bool, approval_method maps to enum) in `tests/unit/ui/sections/test_theme.py`
-- [ ] T071 [P] Implement `ThemeSection(SettingsSection)` with theme QComboBox (system/light/dark), tray animation QComboBox, show_prompt_preview QCheckBox, approval method QComboBox in `src/ui/sections/theme.py`
-- [ ] T072 Register `ThemeSection` as a tab in `SettingsPanel`; apply system theme to panel on open in `src/ui/settings_panel.py`
-- [ ] T073 Confirm theme tests pass: `uv run pytest tests/unit/ui/sections/test_theme.py -v`
-- [ ] T074 [P] Add explicit `setTabOrder()` calls in every section widget's `__init__` for logical keyboard navigation; verify with pytest-qt `qtbot.keyClick(widget, Qt.Key.Key_Tab)` assertions in each section test
-- [ ] T075 [P] Add `Alt+1` through `Alt+0` keyboard shortcuts for each tab in `SettingsPanel` in `src/ui/settings_panel.py`
-- [ ] T076 Security audit: grep `config.yaml` write path for any credential field; confirm `AuthConfig.api_key` is always `""` on save in `src/config/settings.py`
-- [ ] T077 [P] Add structured log calls to all settings save/load/test operations via `get_logger` in every `src/ui/sections/*.py` file
-- [ ] T078 Full integration test: `uv run pytest tests/unit/ui/ -v --cov=src/ui --cov=src/config --cov=src/cloud --cov-fail-under=80`
-- [ ] T079 Run quickstart.md validation scenarios 1–8 manually to confirm end-to-end behaviour matches spec
+- [X] T070 [P] Write failing tests for `ThemeSection` (theme dropdown maps to Theme enum, tray animation maps to UIConfig, show_prompt_preview maps to bool, approval_method maps to enum) in `tests/unit/ui/sections/test_theme.py`
+- [X] T071 [P] Implement `ThemeSection(SettingsSection)` with theme QComboBox (system/light/dark), tray animation QComboBox, show_prompt_preview QCheckBox, approval method QComboBox in `src/ui/sections/theme.py`
+- [X] T072 Register `ThemeSection` as a tab in `SettingsPanel`; apply system theme to panel on open in `src/ui/settings_panel.py`
+- [X] T073 Confirm theme tests pass: `uv run pytest tests/unit/ui/sections/test_theme.py -v`
+- [X] T074 [P] Add explicit `setTabOrder()` calls in every section widget's `__init__` for logical keyboard navigation; verify with pytest-qt `qtbot.keyClick(widget, Qt.Key.Key_Tab)` assertions in each section test
+- [X] T075 [P] Add `Alt+1` through `Alt+0` keyboard shortcuts for each tab in `SettingsPanel` in `src/ui/settings_panel.py`
+- [X] T076 Security audit: grep `config.yaml` write path for any credential field; confirm `AuthConfig.api_key` is always `""` on save in `src/config/settings.py`
+- [X] T077 [P] Add structured log calls to all settings save/load/test operations via `get_logger` in every `src/ui/sections/*.py` file
+- [X] T078 Full integration test: `uv run pytest tests/unit/ui/ -v --cov=src/ui --cov=src/config --cov=src/cloud --cov-fail-under=80`
+- [X] T079 Run quickstart.md validation scenarios 1–8 manually to confirm end-to-end behaviour matches spec
 
 ---
 
