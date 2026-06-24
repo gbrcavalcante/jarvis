@@ -22,9 +22,20 @@ async def test_voice_command_returns_200_with_response() -> None:
         )
     )
 
+    from src.processing.preprocessor import PreProcessorResult, StructuredPrompt
+    sp = StructuredPrompt(task="open browser", context="", constraints="", expected_output="", incomplete=False)
+    pp_result = PreProcessorResult(
+        structured_prompt=sp, model_used="ollama:qwen2.5:3b",
+        stage1_latency_ms=1.0, stage2_latency_ms=1.0, total_latency_ms=2.0,
+        stage1_input="open browser", stage1_output="open browser",
+    )
+
     with patch("src.api.routes.pipeline._get_pipeline") as mock_get:
         mock_get.return_value = {
-            "preprocessor": MagicMock(clean=AsyncMock(return_value="open browser")),
+            "preprocessor": MagicMock(
+                clean=AsyncMock(return_value="open browser"),
+                process=AsyncMock(return_value=pp_result),
+            ),
             "classifier": MagicMock(classify=MagicMock(return_value="simple")),
             "router": MagicMock(route=AsyncMock(return_value=AgentResponse(
                 content="Opening browser.", provider_name="ollama",

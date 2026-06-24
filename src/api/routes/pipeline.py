@@ -71,8 +71,24 @@ async def voice_command(body: VoiceCommandBody) -> JSONResponse:
         await session_mgr.transition(SessionState.CLASSIFYING)
 
     try:
-        cleaned = await preprocessor.clean(body.text)
+        # Use process() if available (Stage 2 structured prompt), fall back to clean()
+        if hasattr(preprocessor, "process"):
+            pp_result = await preprocessor.process(body.text)
+            cleaned = pp_result.stage1_output or body.text
+            structured_prompt = pp_result.structured_prompt
+        else:
+            cleaned = await preprocessor.clean(body.text)
+            structured_prompt = None
+
         tier = classifier.classify(cleaned)
+
+        # Surface incomplete structured prompt for UI review before dispatch
+        if structured_prompt is not None and structured_prompt.incomplete:
+            return JSONResponse({
+                "status": "awaiting_clarification",
+                "structured_prompt": structured_prompt.to_dict(),
+                "tier": tier,
+            })
 
         if session_mgr:
             await session_mgr.transition(SessionState.EXECUTING)
@@ -82,13 +98,16 @@ async def voice_command(body: VoiceCommandBody) -> JSONResponse:
         response = await agent_router.route(request)
 
         _log.info("voice_command_completed", tier=tier, provider=response.provider_name)
-        return JSONResponse({
+        payload: dict = {
             "status": "ok",
             "response": response.content,
             "tier": tier,
             "provider": response.provider_name,
             "request_id": request_id,
-        })
+        }
+        if structured_prompt is not None:
+            payload["structured_prompt"] = structured_prompt.to_dict()
+        return JSONResponse(payload)
 
     except AllProvidersUnavailableError as exc:
         _log.error("voice_command_all_failed", error=str(exc))
