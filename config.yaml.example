@@ -1,0 +1,41 @@
+# JARVIS Configuration
+# Copy this file to config.yaml and fill in your values.
+# NEVER put API keys or secrets here — use the settings panel or CLI to store them securely in the OS keychain.
+
+provider: claude              # Active AI provider: claude | codex | gemini | ollama
+model: claude-sonnet-4-6      # Model identifier for the active provider
+
+auth:
+  method: api_key             # Authentication method: api_key | oauth
+  # API keys are stored in the OS keychain — never put them here.
+
+hotword: "hey jarvis"         # Hotword phrase (default). Change in settings panel.
+
+voice:
+  gender: female              # TTS voice gender: male | female
+  language: en-us             # Voice language: en-us | pt-br
+
+theme: system                 # UI theme: light | dark | system
+
+approval:
+  simple: auto                # Simple tasks: auto-execute silently
+  medium: notify              # Medium tasks: execute, then notify
+  complex: pause              # Complex tasks: pause for user approval
+
+api:
+  port: 37420                 # Local REST API port (loopback only: 127.0.0.1)
+
+retry:
+  max_attempts: 3             # Max retries per provider before moving to next
+  backoff_base: 1             # Exponential backoff base in seconds (1 → 2 → 4 → 8)
+  circuit_breaker_threshold: 5  # Consecutive failures before circuit breaker opens
+  circuit_breaker_cooldown: 60  # Seconds to wait before retrying after circuit opens
+
+budget:
+  daily_limit_usd: 0          # Daily spend limit in USD. 0 = no limit.
+  alert_threshold_usd: 5.0    # Send voice alert when daily spend exceeds this amount.
+
+logging:
+  level: INFO                 # Log level: DEBUG | INFO | WARNING | ERROR
+  format: json                # Log format: json | text
+  file: ~/.jarvis/jarvis.log  # Log file path. Leave empty to log to stdout only.
