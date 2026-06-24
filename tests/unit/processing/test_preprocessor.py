@@ -21,7 +21,7 @@ async def test_preprocessor_removes_filler_words() -> None:
 @pytest.mark.asyncio
 async def test_preprocessor_selects_haiku_when_anthropic_key_available() -> None:
     from src.config.keychain import read_credential
-    with patch("src.config.keychain.read_credential") as mock_read:
+    with patch("src.processing.preprocessor.read_credential") as mock_read:
         mock_read.side_effect = lambda ns, name: "sk-ant-fake" if name == "claude" else None
 
         from src.processing.preprocessor import Preprocessor

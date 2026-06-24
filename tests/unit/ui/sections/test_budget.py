@@ -80,7 +80,8 @@ def test_budget_validate_returns_empty(qtbot) -> None:
 # T065: Budget enforcement in Router
 # ---------------------------------------------------------------------------
 
-def test_budget_enforcement_raises_when_cap_exceeded() -> None:
+@pytest.mark.asyncio
+async def test_budget_enforcement_raises_when_cap_exceeded() -> None:
     from src.processing.router import Router, BudgetExceededError
     from unittest.mock import AsyncMock, MagicMock
     from src.config.settings import BudgetConfig
@@ -90,14 +91,12 @@ def test_budget_enforcement_raises_when_cap_exceeded() -> None:
     router = Router(agents=[agent], budget_config=BudgetConfig(daily_limit_usd=1.0, alert_threshold_pct=80))
     router.set_accumulated_spend(1.50)
 
-    import asyncio
     with pytest.raises(BudgetExceededError):
-        asyncio.get_event_loop().run_until_complete(
-            router.route(MagicMock())
-        )
+        await router.route(MagicMock())
 
 
-def test_budget_enforcement_no_cap_when_limit_zero() -> None:
+@pytest.mark.asyncio
+async def test_budget_enforcement_no_cap_when_limit_zero() -> None:
     from src.processing.router import Router
     from unittest.mock import AsyncMock, MagicMock
     from src.config.settings import BudgetConfig
@@ -110,12 +109,12 @@ def test_budget_enforcement_no_cap_when_limit_zero() -> None:
     router = Router(agents=[agent], budget_config=BudgetConfig(daily_limit_usd=0.0))
     router.set_accumulated_spend(999.0)
 
-    import asyncio
-    response = asyncio.get_event_loop().run_until_complete(router.route(MagicMock()))
+    response = await router.route(MagicMock())
     assert response.content == "ok"
 
 
-def test_budget_enforcement_fires_alert_at_threshold() -> None:
+@pytest.mark.asyncio
+async def test_budget_enforcement_fires_alert_at_threshold() -> None:
     from src.processing.router import Router
     from unittest.mock import AsyncMock, MagicMock
     from src.config.settings import BudgetConfig
@@ -134,6 +133,5 @@ def test_budget_enforcement_fires_alert_at_threshold() -> None:
     )
     router.set_accumulated_spend(0.85)  # 85% of $1.00 — above 80% threshold
 
-    import asyncio
-    asyncio.get_event_loop().run_until_complete(router.route(MagicMock()))
+    await router.route(MagicMock())
     assert len(alerts) == 1

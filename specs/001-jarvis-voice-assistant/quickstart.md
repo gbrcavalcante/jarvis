@@ -2,6 +2,21 @@
 
 **Phase 1 output** | **Date**: 2026-06-22
 
+## Validation Results — 2026-06-23
+
+All scenarios validated against the automated test suite. Hardware-dependent paths (microphone, speakers, TTS playback) tested via mock injection in CI.
+
+| Scenario | Status | Notes |
+|----------|--------|-------|
+| 1 — Core Voice Loop | ✓ PASS | test_audio_pipeline.py, test_processing_pipeline.py |
+| 2 — Three-Tier Approval | ✓ PASS | test_approval.py, test_approval_api.py |
+| 3 — Provider Connection | ✓ PASS | test_provider_config.py, test_provider_api.py |
+| 4 — All Providers Fail | ✓ PASS | test_retry_queue.py (retry_queue.json written) |
+| 5 — Memory Service | ✓ PASS | test_profile.py, test_session_hooks.py, test_memory_api.py |
+| 6 — Usage Dashboard | ✓ PASS | test_usage.py, test_dashboard_api.py |
+| 7 — Skills & MCP | ✓ PASS | test_skills_manager.py, test_mcp_manager.py, test_plugins_api.py |
+| 8 — Language | ✓ PASS | VoiceCommandBody accepts language field; TTS model selection tested |
+
 This guide documents how to validate that JARVIS works end-to-end after implementation. It covers prerequisites, setup, and runnable validation scenarios for each user story.
 
 ---
