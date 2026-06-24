@@ -1,9 +1,5 @@
 # JARVIS
 
-[![CI](https://github.com/gbrcavalcante/jarvis/actions/workflows/release.yml/badge.svg)](https://github.com/gbrcavalcante/jarvis/actions/workflows/release.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-
 Voice-first AI assistant for desktop. Say "Hey Jarvis" — JARVIS transcribes your speech locally, routes the request to the best available AI provider, and responds by voice. No cloud dependency required.
 
 ---
@@ -291,10 +287,6 @@ Artifacts land in `dist/`.
 
 ---
 
-## Contributing
-
-PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening one.
-
 ## License
 
-[MIT](LICENSE) — © 2026 Gabriel Cavalcante
+Commercial — all rights reserved. Contact [gabrielcavalcante.dev@proton.me](mailto:gabrielcavalcante.dev@proton.me) for licensing.
