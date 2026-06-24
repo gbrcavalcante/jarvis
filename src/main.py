@@ -27,6 +27,14 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     from src.audio.hotword import HotwordDetector
     from src.audio.transcriber import Transcriber
     from src.audio.tts import TTSEngine
+    from src.processing.preprocessor import Preprocessor
+    from src.processing.classifier import Classifier
+    from src.processing.router import Router
+    from src.agents.ollama_agent import OllamaAgent
+    from src.agents.claude_agent import ClaudeAgent
+    from src.agents.codex_agent import CodexAgent
+    from src.agents.gemini_agent import GeminiAgent
+    from src.api.routes.pipeline import set_pipeline
 
     hotword_phrase = config.hotword_config.phrase.replace(" ", "_")
     language_map = {"en-us": "en", "pt-br": "pt"}
@@ -39,21 +47,50 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     hotword = HotwordDetector(phrases=[hotword_phrase], threshold=0.5)
     mic = Microphone()
 
+    preprocessor = Preprocessor()
+    classifier = Classifier(overrides={})
+    agent_router = Router(agents=[
+        OllamaAgent(),
+        ClaudeAgent(),
+        CodexAgent(),
+        GeminiAgent(),
+    ])
+
+    set_pipeline(preprocessor, classifier, agent_router, session_mgr)
+
     async def on_hotword(phrase: str) -> None:
         if session_mgr.state != SessionState.IDLE:
             await session_mgr.end_session()
         await session_mgr.start_session()
         await session_mgr.transition(SessionState.TRANSCRIBING)
 
-        # Capture audio for transcription — in production the mic buffers after hotword
         import numpy as np
-        audio = np.zeros(16000, dtype=np.float32)  # placeholder for real buffer
+        audio = np.zeros(16000, dtype=np.float32)  # placeholder for real mic buffer
         transcript = await transcriber.transcribe(audio)
         _log.info("transcript_received", text=transcript.text)
 
-        await session_mgr.transition(SessionState.SPEAKING)
-        if transcript.text:
-            await tts.speak(f"You said: {transcript.text}")
+        if not transcript.text:
+            await session_mgr.end_session()
+            return
+
+        await session_mgr.transition(SessionState.CLASSIFYING)
+        cleaned = await preprocessor.clean(transcript.text)
+        tier = classifier.classify(cleaned)
+        _log.info("task_classified", tier=tier)
+
+        await session_mgr.transition(SessionState.EXECUTING)
+        from src.agents.base import AgentRequest, AllProvidersUnavailableError
+        import uuid
+        try:
+            response = await agent_router.route(
+                AgentRequest(prompt=cleaned, request_id=str(uuid.uuid4()))
+            )
+            await session_mgr.transition(SessionState.SPEAKING)
+            await tts.speak(response.content)
+        except AllProvidersUnavailableError:
+            _log.error("all_providers_failed")
+            await tts.speak("Sorry, I could not reach any AI provider right now.")
+
         await session_mgr.end_session()
 
     hotword.on_detected = on_hotword

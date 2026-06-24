@@ -67,12 +67,12 @@
 - [X] T022 [US1] Implement speech transcriber — wraps faster-whisper `base` model, activates only on `HotwordDetected`, accepts `language` param (`en` / `pt`), returns `Transcript` — `src/audio/transcriber.py`
 - [X] T023 [US1] Implement TTS engine — wraps piper-tts, selects voice model from (language × gender) config, streams audio to system output without writing temp files — `src/audio/tts.py`
 - [X] T024 [US1] Implement session state machine — states: `idle → listening → transcribing → processing → speaking → idle`, emits structured log at every transition — `src/memory/session.py`
-- [ ] T025 [US1] Implement tray icon with state-driven animation — idle / listening / processing icons, driven by session state events — `src/ui/tray.py`
+- [X] T025 [US1] Implement tray icon with state-driven animation — idle / listening / processing icons, driven by session state events — `src/ui/tray.py`
 - [X] T026 [US1] Wire the audio pipeline — microphone → hotword → transcriber → session state updates → tray animation, driven by asyncio event loop — `src/main.py`
 - [X] T027 [US1] Add `GET /status` endpoint returning current pipeline state and active session ID — `src/api/routes/pipeline.py`, `src/api/server.py`
-- [ ] T028 [US1] Download and cache openwakeword hotword models (`hey_jarvis`, `ei_jarvis`) on first launch — `src/audio/hotword.py`
-- [ ] T029 [US1] Download and cache faster-whisper `base` model on first launch (setup wizard prompt) — `src/audio/transcriber.py`
-- [ ] T030 [US1] Download and cache piper-tts voice models on first launch (EN male+female, PT-BR male+female) — `src/audio/tts.py`
+- [X] T028 [US1] Download and cache openwakeword hotword models (`hey_jarvis`, `ei_jarvis`) on first launch — `src/audio/hotword.py`
+- [X] T029 [US1] Download and cache faster-whisper `base` model on first launch (setup wizard prompt) — `src/audio/transcriber.py`
+- [X] T030 [US1] Download and cache piper-tts voice models on first launch (EN male+female, PT-BR male+female) — `src/audio/tts.py`
 
 **Checkpoint**: Running `uv run python -m jarvis` shows tray icon. Saying "Hey Jarvis" triggers animation and returns a voice response from a stub agent. All T016–T019 tests green.
 
@@ -90,7 +90,7 @@
 - [X] T032 [P] [US2] Unit test for classifier — returns correct tier for 30 sample prompts (10 per tier), respects `TierOverride` — `tests/unit/processing/test_classifier.py`
 - [X] T033 [P] [US2] Unit test for router — tries providers in order, skips unavailable, raises `AllProvidersUnavailableError` when all fail — `tests/unit/processing/test_router.py`
 - [X] T034 [P] [US2] Unit test for circuit breaker — opens after 5 consecutive failures, allows retry after 60 s cooldown — `tests/unit/processing/test_circuit_breaker.py`
-- [ ] T035 [US2] Integration test for full processing pipeline — preprocessor → classifier → router → Ollama response — `tests/integration/test_processing_pipeline.py`
+- [X] T035 [US2] Integration test for full processing pipeline — preprocessor → classifier → router → Ollama response — `tests/integration/test_processing_pipeline.py`
 
 ### Implementation — US2
 
@@ -103,9 +103,9 @@
 - [X] T042 [US2] Implement three-tier classifier — keyword verb lists for Simple/Medium/Complex, checks `TierOverride` table first, returns `Tier` enum — `src/processing/classifier.py`
 - [X] T043 [US2] Implement router with fallback chain and circuit breaker — Simple tasks → Ollama; Complex tasks → Claude → Codex → Gemini; all-fail → `AllProvidersUnavailableError` — `src/processing/router.py`
 - [X] T044 [US2] Implement LRU prompt cache — keyed by normalized prompt hash, configurable max size, returns cached `Response` on hit — `src/processing/cache.py`
-- [ ] T045 [US2] Implement retry queue writer — on `AllProvidersUnavailableError`, writes task to `~/.jarvis/retry_queue.json` — `src/processing/router.py`
-- [ ] T046 [US2] Add `POST /voice/command` endpoint — accepts `{text, language}`, runs full processing pipeline, returns status — `src/api/routes/pipeline.py`
-- [ ] T047 [US2] Wire processing pipeline into main loop — session state updates for `classifying` and `executing` states — `src/main.py`
+- [X] T045 [US2] Implement retry queue writer — on `AllProvidersUnavailableError`, writes task to `~/.jarvis/retry_queue.json` — `src/processing/router.py`
+- [X] T046 [US2] Add `POST /voice/command` endpoint — accepts `{text, language}`, runs full processing pipeline, returns status — `src/api/routes/pipeline.py`
+- [X] T047 [US2] Wire processing pipeline into main loop — session state updates for `classifying` and `executing` states — `src/main.py`
 
 **Checkpoint**: Ollama running locally. Simple task routes to Ollama silently. Complex task pauses. All T031–T035 tests green.
 
@@ -119,19 +119,19 @@
 
 ### Tests — US3 (write first, confirm FAIL before implementing)
 
-- [ ] T048 [P] [US3] Unit test for Supabase auth — email signup, email login, Google OAuth URL generation — `tests/unit/cloud/test_auth.py`
-- [ ] T049 [P] [US3] Unit test for provider config persistence — connect, read back after restart simulation, disconnect — `tests/unit/config/test_provider_config.py`
-- [ ] T050 [US3] Integration test for provider connect API endpoints — POST connect, GET list, DELETE, POST active — `tests/integration/test_provider_api.py`
+- [X] T048 [P] [US3] Unit test for Supabase auth — email signup, email login, Google OAuth URL generation — `tests/unit/cloud/test_auth.py`
+- [X] T049 [P] [US3] Unit test for provider config persistence — connect, read back after restart simulation, disconnect — `tests/unit/config/test_provider_config.py`
+- [X] T050 [US3] Integration test for provider connect API endpoints — POST connect, GET list, DELETE, POST active — `tests/integration/test_provider_api.py`
 
 ### Implementation — US3
 
 - [X] T051 [US3] Implement Supabase auth client — email/password signup+login, Google OAuth flow, stores session token in keychain — `src/cloud/auth.py`
 - [X] T052 [US3] Implement `ProviderConfig` CRUD — read/write to `provider_configs` SQLite table; credential stored in keychain, never in DB — `src/storage/provider_store.py`
-- [ ] T053 [US3] Add `GET /providers` endpoint — lists all configs with connection status — `src/api/routes/providers.py`
-- [ ] T054 [US3] Add `POST /providers/{name}/connect` endpoint — writes API key immediately to keychain (never persisted in request body beyond the handler), or returns OAuth URL — `src/api/routes/providers.py`
-- [ ] T055 [US3] Add `DELETE /providers/{name}` endpoint — removes keychain entry and deactivates — `src/api/routes/providers.py`
-- [ ] T056 [US3] Add `POST /providers/active` endpoint — sets active provider (validates credentials exist) — `src/api/routes/providers.py`
-- [ ] T057 [US3] Implement settings panel Providers tab — list providers, connect/disconnect buttons, OAuth browser launch, API key field — `src/ui/settings.py`
+- [X] T053 [US3] Add `GET /providers` endpoint — lists all configs with connection status — `src/api/routes/providers.py`
+- [X] T054 [US3] Add `POST /providers/{name}/connect` endpoint — writes API key immediately to keychain (never persisted in request body beyond the handler), or returns OAuth URL — `src/api/routes/providers.py`
+- [X] T055 [US3] Add `DELETE /providers/{name}` endpoint — removes keychain entry and deactivates — `src/api/routes/providers.py`
+- [X] T056 [US3] Add `POST /providers/active` endpoint — sets active provider (validates credentials exist) — `src/api/routes/providers.py`
+- [X] T057 [US3] Implement settings panel Providers tab — list providers, connect/disconnect buttons, OAuth browser launch, API key field — `src/ui/settings.py`
 
 **Checkpoint**: API key for one provider entered in UI → stored in keychain → app restarted → provider still listed as connected → `grep -r "sk-" ~/.config/jarvis/` returns nothing. All T048–T050 tests green.
 
@@ -145,19 +145,19 @@
 
 ### Tests — US4 (write first, confirm FAIL before implementing)
 
-- [ ] T058 [P] [US4] Unit test for approval manager — Simple returns `approved` immediately, Medium returns `approved` after execution, Complex raises `AwaitingApproval` before execution — `tests/unit/output/test_approval.py`
-- [ ] T059 [P] [US4] Unit test for tier override CRUD — add override, classify same prompt, confirm tier changes — `tests/unit/processing/test_tier_override.py`
-- [ ] T060 [US4] Integration test for approval API — POST approve with edited prompt, confirm edited text propagated — `tests/integration/test_approval_api.py`
+- [X] T058 [P] [US4] Unit test for approval manager — Simple returns `approved` immediately, Medium returns `approved` after execution, Complex raises `AwaitingApproval` before execution — `tests/unit/output/test_approval.py`
+- [X] T059 [P] [US4] Unit test for tier override CRUD — add override, classify same prompt, confirm tier changes — `tests/unit/processing/test_tier_override.py`
+- [X] T060 [US4] Integration test for approval API — POST approve with edited prompt, confirm edited text propagated — `tests/integration/test_approval_api.py`
 
 ### Implementation — US4
 
 - [X] T061 [US4] Implement approval manager — gates Complex tasks behind `AwaitingApproval` state, Medium tasks execute and emit post-notification, Simple tasks pass through — `src/output/approval.py`
 - [X] T062 [US4] Implement permission manager — checks OS-level permissions for requested actions before execution — `src/output/permissions.py`
-- [ ] T063 [US4] Implement approval dialog (PyQt6) — displays cleaned prompt in editable field, Approve / Cancel buttons, voice command listener ("yes proceed" / "cancel") — `src/ui/approval_dialog.py`
-- [ ] T064 [US4] Add `POST /approve` endpoint — accepts `{request_id, edited_prompt?}`, transitions state from `awaiting_approval` to `executing` — `src/api/routes/pipeline.py`
-- [ ] T065 [US4] Add `POST /cancel` endpoint — cancels any pending or executing task — `src/api/routes/pipeline.py`
-- [ ] T066 [US4] Add `POST /settings/tier-overrides` and `DELETE /settings/tier-overrides/{pattern}` endpoints — `src/api/routes/settings.py`
-- [ ] T067 [US4] Add tier override UI to settings panel General tab — list overrides, add/remove form — `src/ui/settings.py`
+- [X] T063 [US4] Implement approval dialog (PyQt6) — displays cleaned prompt in editable field, Approve / Cancel buttons, voice command listener ("yes proceed" / "cancel") — `src/ui/approval_dialog.py`
+- [X] T064 [US4] Add `POST /approve` endpoint — accepts `{request_id, edited_prompt?}`, transitions state from `awaiting_approval` to `executing` — `src/api/routes/pipeline.py`
+- [X] T065 [US4] Add `POST /cancel` endpoint — cancels any pending or executing task — `src/api/routes/pipeline.py`
+- [X] T066 [US4] Add `POST /settings/tier-overrides` and `DELETE /settings/tier-overrides/{pattern}` endpoints — `src/api/routes/settings.py`
+- [X] T067 [US4] Add tier override UI to settings panel General tab — list overrides, add/remove form — `src/ui/settings.py`
 
 **Checkpoint**: Complex task shows dialog. User edits prompt. Edited text (not original) sent to agent. All T058–T060 tests green.
 
@@ -171,17 +171,17 @@
 
 ### Tests — US5 (write first, confirm FAIL before implementing)
 
-- [ ] T068 [P] [US5] Unit test for memory profile — write entry, read back, confirm raw transcript not stored — `tests/unit/memory/test_profile.py`
-- [ ] T069 [P] [US5] Unit test for memory service hooks — session_started injects context prefix, session_ended compresses and persists patterns — `tests/unit/memory/test_session_hooks.py`
-- [ ] T070 [US5] Integration test for memory clear API — DELETE /memory with valid token clears all entries — `tests/integration/test_memory_api.py`
+- [X] T068 [P] [US5] Unit test for memory profile — write entry, read back, confirm raw transcript not stored — `tests/unit/memory/test_profile.py`
+- [X] T069 [P] [US5] Unit test for memory service hooks — session_started injects context prefix, session_ended compresses and persists patterns — `tests/unit/memory/test_session_hooks.py`
+- [X] T070 [US5] Integration test for memory clear API — DELETE /memory with valid token clears all entries — `tests/integration/test_memory_api.py`
 
 ### Implementation — US5
 
 - [X] T071 [US5] Implement memory profile reader/writer — read/write `~/.jarvis/user_profile.md` (Markdown), managed by claude-mem; no raw transcripts stored — `src/memory/profile.py`
 - [X] T072 [US5] Implement claude-mem integration — background coroutine, `on_session_started(session_id)` injects context prefix, `on_session_ended(session_id, transcript)` compresses and persists behavioral patterns — `src/memory/session.py`
 - [X] T073 [US5] Implement Supabase sync for profile (opt-in, disabled by default) — syncs `user_profile.md` to Supabase storage on session end — `src/cloud/sync.py`
-- [ ] T074 [US5] Add `GET /memory/confirm-token` endpoint (30 s TTL token) and `DELETE /memory` endpoint (requires token, deletes all `memory_entries`) — `src/api/routes/memory.py`
-- [ ] T075 [US5] Add Clear Memory button with confirmation dialog to settings panel — `src/ui/settings.py`
+- [X] T074 [US5] Add `GET /memory/confirm-token` endpoint (30 s TTL token) and `DELETE /memory` endpoint (requires token, deletes all `memory_entries`) — `src/api/routes/memory.py`
+- [X] T075 [US5] Add Clear Memory button with confirmation dialog to settings panel — `src/ui/settings.py`
 
 **Checkpoint**: After several sessions, restart app. Prior preferences applied automatically. Clear Memory → preferences reset. All T068–T070 tests green.
 
@@ -195,14 +195,14 @@
 
 ### Tests — US6 (write first, confirm FAIL before implementing)
 
-- [ ] T076 [P] [US6] Unit test for usage record writer — session end writes correct tokens, cost, and `is_local` flag — `tests/unit/storage/test_usage.py`
-- [ ] T077 [US6] Integration test for dashboard API — GET /dashboard returns correct aggregates for today/week/month — `tests/integration/test_dashboard_api.py`
+- [X] T076 [P] [US6] Unit test for usage record writer — session end writes correct tokens, cost, and `is_local` flag — `tests/unit/storage/test_usage.py`
+- [X] T077 [US6] Integration test for dashboard API — GET /dashboard returns correct aggregates for today/week/month — `tests/integration/test_dashboard_api.py`
 
 ### Implementation — US6
 
 - [X] T078 [US6] Implement usage record writer — writes `UsageRecord` to SQLite at session end with tokens, cost (from published rates), and `cloud_equivalent_cost_usd` for Ollama sessions — `src/storage/usage_store.py`
-- [ ] T079 [US6] Add `GET /dashboard` endpoint — aggregates `UsageRecord` by period (today/week/month), returns per-provider breakdown and total savings — `src/api/routes/dashboard.py`
-- [ ] T080 [US6] Implement dashboard window (PyQt6) — tabbed by period, per-provider token + cost table, Ollama savings row, accessible from tray menu — `src/ui/dashboard.py`
+- [X] T079 [US6] Add `GET /dashboard` endpoint — aggregates `UsageRecord` by period (today/week/month), returns per-provider breakdown and total savings — `src/api/routes/dashboard.py`
+- [X] T080 [US6] Implement dashboard window (PyQt6) — tabbed by period, per-provider token + cost table, Ollama savings row, accessible from tray menu — `src/ui/dashboard.py`
 
 **Checkpoint**: Open dashboard after real sessions. Token counts, cost, and savings all non-zero and correct. All T076–T077 tests green.
 
@@ -216,9 +216,9 @@
 
 ### Tests — US7 (write first, confirm FAIL before implementing)
 
-- [ ] T081 [P] [US7] Unit test for skills manager — install places file in correct agent directory, remove deletes it, list filters by active provider — `tests/unit/plugins/test_skills_manager.py`
-- [ ] T082 [P] [US7] Unit test for MCP manager — connect writes `mcpServers` entry to agent config, disconnect removes it, credential goes to keychain — `tests/unit/plugins/test_mcp_manager.py`
-- [ ] T083 [US7] Integration test for skills and MCP API endpoints — install/list/remove skill, connect/list/disconnect MCP — `tests/integration/test_plugins_api.py`
+- [X] T081 [P] [US7] Unit test for skills manager — install places file in correct agent directory, remove deletes it, list filters by active provider — `tests/unit/plugins/test_skills_manager.py`
+- [X] T082 [P] [US7] Unit test for MCP manager — connect writes `mcpServers` entry to agent config, disconnect removes it, credential goes to keychain — `tests/unit/plugins/test_mcp_manager.py`
+- [X] T083 [US7] Integration test for skills and MCP API endpoints — install/list/remove skill, connect/list/disconnect MCP — `tests/integration/test_plugins_api.py`
 
 ### Implementation — US7
 
@@ -226,8 +226,8 @@
 - [X] T085 [P] [US7] Implement MCP manager — reads/writes `mcpServers` key in agent config file (Claude: `~/.claude/claude_desktop_config.json`, Codex: `~/.codex/config.json`, Gemini: `~/.gemini/settings.json`), stores OAuth/API key in keychain — `src/plugins/mcp_manager.py`
 - [X] T086 [US7] Add `GET /skills`, `POST /skills/{id}/install`, `DELETE /skills/{id}` endpoints — `src/api/routes/skills.py`
 - [X] T087 [US7] Add `GET /mcp`, `POST /mcp/connect`, `DELETE /mcp/{id}` endpoints — `src/api/routes/mcp.py`
-- [ ] T088 [US7] Add Skills tab to settings panel — filtered skill list, install/remove buttons — `src/ui/settings.py`
-- [ ] T089 [US7] Add MCP tab to settings panel — URL input, Smithery browse button (opens web browser), connect/disconnect per service — `src/ui/settings.py`
+- [X] T088 [US7] Add Skills tab to settings panel — filtered skill list, install/remove buttons — `src/ui/settings.py`
+- [X] T089 [US7] Add MCP tab to settings panel — URL input, Smithery browse button (opens web browser), connect/disconnect per service — `src/ui/settings.py`
 
 **Checkpoint**: Skill installed → file exists in agent's directory. Skill removed → file deleted. MCP connected → entry in agent config. MCP credential → in keychain only. All T081–T083 tests green.
 
@@ -238,15 +238,15 @@
 **Purpose**: Billing, distribution, CI/CD, observability hardening, and final validation.
 
 - [X] T090 [P] Implement Stripe billing integration — subscription check on launch, usage-based metering webhook handler — `src/cloud/billing.py`
-- [ ] T091 [P] Implement retry queue UI in settings panel — list pending items, retry and discard buttons — `src/ui/settings.py`
-- [ ] T092 [P] Add `GET /retry-queue`, `POST /retry-queue/{id}/retry`, `DELETE /retry-queue/{id}` endpoints — `src/api/routes/retry_queue.py`
-- [ ] T093 [P] Add settings panel General tab — hotword phrase, language, voice gender, theme — `src/ui/settings.py`
-- [ ] T094 Configure PyInstaller spec file for single-folder build, bundling hotword models — `jarvis.spec`
-- [ ] T095 [P] Configure NSIS script for Windows signed `.exe` installer — `installer/windows/installer.nsi`
-- [ ] T096 [P] Configure appimage-builder recipe for Linux `.AppImage` — `installer/linux/AppImageBuilder.yml`
-- [ ] T097 Write GitHub Actions CI/CD pipeline — runs pytest (coverage ≥ 80%), builds `.exe` and `.AppImage` on tag push — `.github/workflows/release.yml`
-- [ ] T098 [P] Run all quickstart.md validation scenarios (Scenarios 1–8) and document results — `specs/001-jarvis-voice-assistant/quickstart.md`
-- [ ] T099 Write `README.md` — installation, first run, developer config instructions — `README.md`
+- [X] T091 [P] Implement retry queue UI in settings panel — list pending items, retry and discard buttons — `src/ui/settings.py`
+- [X] T092 [P] Add `GET /retry-queue`, `POST /retry-queue/{id}/retry`, `DELETE /retry-queue/{id}` endpoints — `src/api/routes/retry_queue.py`
+- [X] T093 [P] Add settings panel General tab — hotword phrase, language, voice gender, theme — `src/ui/settings.py`
+- [X] T094 Configure PyInstaller spec file for single-folder build, bundling hotword models — `jarvis.spec`
+- [X] T095 [P] Configure NSIS script for Windows signed `.exe` installer — `installer/windows/installer.nsi`
+- [X] T096 [P] Configure appimage-builder recipe for Linux `.AppImage` — `installer/linux/AppImageBuilder.yml`
+- [X] T097 Write GitHub Actions CI/CD pipeline — runs pytest (coverage ≥ 80%), builds `.exe` and `.AppImage` on tag push — `.github/workflows/release.yml`
+- [X] T098 [P] Run all quickstart.md validation scenarios (Scenarios 1–8) and document results — `specs/001-jarvis-voice-assistant/quickstart.md`
+- [X] T099 Write `README.md` — installation, first run, developer config instructions — `README.md`
 
 **Checkpoint**: All tests green at ≥ 80% coverage. Both installers build without errors. All 8 quickstart scenarios pass.
 

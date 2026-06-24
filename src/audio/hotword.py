@@ -8,6 +8,7 @@ pipeline orchestrator in main.py.
 from __future__ import annotations
 
 import asyncio
+import urllib.request
 from pathlib import Path
 from typing import Callable, Awaitable
 
@@ -23,6 +24,35 @@ _BUNDLED_MODELS: dict[str, str] = {
     "hey_jarvis": "hey_jarvis.onnx",
     "ei_jarvis": "ei_jarvis.onnx",
 }
+
+_MODEL_URLS: dict[str, str] = {
+    "hey_jarvis": (
+        "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/hey_jarvis_v0.1.onnx"
+    ),
+    "ei_jarvis": (
+        "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/jarvis_v0.1.onnx"
+    ),
+}
+
+
+def ensure_models_downloaded(phrases: list[str]) -> None:
+    """Download missing openwakeword ONNX model files to _MODEL_DIR."""
+    _MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    for phrase in phrases:
+        filename = _BUNDLED_MODELS.get(phrase)
+        if not filename:
+            continue
+        dest = _MODEL_DIR / filename
+        if dest.exists():
+            _log.info("hotword_model_cached", phrase=phrase)
+            continue
+        url = _MODEL_URLS.get(phrase)
+        if not url:
+            _log.warning("hotword_model_no_url", phrase=phrase)
+            continue
+        _log.info("hotword_model_downloading", phrase=phrase, url=url)
+        urllib.request.urlretrieve(url, dest)
+        _log.info("hotword_model_downloaded", phrase=phrase)
 
 
 class HotwordDetector:

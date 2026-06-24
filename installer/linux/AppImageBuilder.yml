@@ -1,0 +1,32 @@
+version: 1
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: dev.gabrielcavalcante.jarvis
+    name: JARVIS
+    icon: jarvis
+    version: 1.0.0
+    exec: usr/bin/jarvis
+    exec_args: $@
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: deb http://archive.ubuntu.com/ubuntu focal main restricted universe multiverse
+
+  files:
+    include:
+      - usr/lib/x86_64-linux-gnu/libportaudio.so*
+    exclude:
+      - usr/share/man
+      - usr/share/doc/*/README.*
+      - usr/share/doc/*/changelog.*
+
+  runtime:
+    env:
+      PYTHONPATH: usr/lib/python3.11
+
+AppImage:
+  arch: x86_64
+  file_name: JARVIS-1.0.0-x86_64.AppImage
+  update_info: gh-releases-zsync|gabrielcavalcante|jarvis|latest|JARVIS-*x86_64.AppImage.zsync

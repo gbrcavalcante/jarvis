@@ -25,7 +25,8 @@ _COMPLEX_VERBS = {
     "delete", "remove", "execute", "run", "commit", "push", "deploy",
     "format", "merge", "configure", "send", "post", "publish", "build",
     "compile", "refactor", "migrate", "drop", "reset", "overwrite",
-    "uninstall", "destroy", "kill", "terminate",
+    "uninstall", "destroy", "kill", "terminate", "write",
+    "implement", "generate",
 }
 
 

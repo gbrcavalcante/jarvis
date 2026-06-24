@@ -7,7 +7,9 @@ Complex tasks → Claude → Codex → Gemini → (all fail) → voice notify + 
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+from pathlib import Path
 from dataclasses import dataclass, field
 
 from typing import Callable
@@ -64,6 +66,7 @@ class Router:
         circuit_breaker_cooldown: float = 60.0,
         budget_config: BudgetConfig | None = None,
         on_budget_alert: Callable[[float, float], None] | None = None,
+        retry_queue_path: Path | None = None,
     ) -> None:
         self._agents = agents
         self._breakers: dict[str, CircuitBreaker] = {
@@ -74,6 +77,9 @@ class Router:
         self._on_budget_alert = on_budget_alert
         self._accumulated_spend: float = 0.0
         self._alert_fired: bool = False
+        self._retry_queue_path = retry_queue_path or (
+            Path.home() / ".jarvis" / "retry_queue.json"
+        )
 
     def set_accumulated_spend(self, spend: float) -> None:
         """Inject accumulated spend for testing or external sync."""
@@ -114,9 +120,28 @@ class Router:
                 _log.error("provider_exception", provider=agent.name, error=str(exc))
                 errors.append(f"{agent.name}: {exc}")
 
+        self._write_retry_queue(request, errors)
         raise AllProvidersUnavailableError(
             f"All providers failed: {'; '.join(errors)}"
         )
+
+    def _write_retry_queue(self, request: AgentRequest, errors: list[str]) -> None:
+        """Append failed request to retry_queue.json for later retry."""
+        path = self._retry_queue_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        items: list[dict] = []
+        if path.exists():
+            try:
+                items = json.loads(path.read_text())
+            except (json.JSONDecodeError, OSError):
+                items = []
+        items.append({
+            "request_id": request.request_id,
+            "prompt": request.prompt,
+            "errors": errors,
+        })
+        path.write_text(json.dumps(items, indent=2))
+        _log.warning("retry_queue_written", request_id=request.request_id)
 
     def _check_budget(self) -> None:
         """Raise BudgetExceededError if cap reached; fire alert callback at threshold."""

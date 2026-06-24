@@ -19,6 +19,20 @@ _log = get_logger("audio.transcriber")
 _MODEL_CACHE_DIR = Path.home() / ".jarvis" / "models" / "whisper"
 
 
+def ensure_model_cached(model_size: str = "base") -> None:
+    """Pre-download the faster-whisper model to _MODEL_CACHE_DIR if not present."""
+    import faster_whisper  # type: ignore[import]
+    _MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    _log.info("transcriber_ensuring_model", model_size=model_size)
+    faster_whisper.WhisperModel(
+        model_size,
+        device="cpu",
+        compute_type="int8",
+        download_root=str(_MODEL_CACHE_DIR),
+    )
+    _log.info("transcriber_model_ready", model_size=model_size)
+
+
 @dataclass
 class Transcript:
     text: str

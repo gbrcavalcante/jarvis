@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import urllib.request
 from pathlib import Path
 
 import sounddevice as sd
@@ -30,6 +31,41 @@ _VOICE_MODELS: dict[str, dict[str, str]] = {
         "male": "pt_BR-faber-medium",
     },
 }
+
+_PIPER_BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
+
+_MODEL_PATHS: dict[str, str] = {
+    "en_US-lessac-medium": "en/en_US/lessac/medium/en_US-lessac-medium",
+    "en_US-ryan-medium": "en/en_US/ryan/medium/en_US-ryan-medium",
+    "pt_BR-edresson-low": "pt/pt_BR/edresson/low/pt_BR-edresson-low",
+    "pt_BR-faber-medium": "pt/pt_BR/faber/medium/pt_BR-faber-medium",
+}
+
+
+def ensure_models_downloaded(language: str = "en-us", gender: str = "female") -> None:
+    """Download missing piper-tts .onnx and .json files to _MODEL_CACHE_DIR."""
+    _MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    lang = language.lower()
+    gen = gender.lower()
+    model_name = _VOICE_MODELS.get(lang, _VOICE_MODELS["en-us"]).get(
+        gen, "en_US-lessac-medium"
+    )
+    onnx_path = _MODEL_CACHE_DIR / f"{model_name}.onnx"
+    json_path = _MODEL_CACHE_DIR / f"{model_name}.onnx.json"
+
+    if onnx_path.exists() and json_path.exists():
+        _log.info("tts_model_cached", model=model_name)
+        return
+
+    rel = _MODEL_PATHS.get(model_name, f"en/en_US/lessac/medium/{model_name}")
+    for suffix in (".onnx", ".onnx.json"):
+        dest = _MODEL_CACHE_DIR / f"{model_name}{suffix}"
+        if dest.exists():
+            continue
+        url = f"{_PIPER_BASE_URL}/{rel}{suffix}"
+        _log.info("tts_model_downloading", model=model_name, url=url)
+        urllib.request.urlretrieve(url, dest)
+        _log.info("tts_model_downloaded", model=model_name, file=suffix)
 
 
 class TTSEngine:

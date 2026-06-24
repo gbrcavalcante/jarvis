@@ -19,13 +19,14 @@ def make_mock_agent(name: str, available: bool = True, raises: bool = False) -> 
 
 
 @pytest.mark.asyncio
-async def test_router_uses_first_available_provider() -> None:
+async def test_router_uses_first_available_provider(tmp_path) -> None:
     claude = make_mock_agent("claude")
     ollama = make_mock_agent("ollama")
 
     from src.processing.router import Router
-    router = Router(agents=[claude, ollama])
-    request = MagicMock(prompt="open browser", tier="simple")
+    from src.agents.base import AgentRequest
+    router = Router(agents=[claude, ollama], retry_queue_path=tmp_path / "retry.json")
+    request = AgentRequest(request_id="r-1", prompt="open browser", tier="simple")
     response = await router.route(request)
 
     assert response.provider_name == "claude"
@@ -34,13 +35,14 @@ async def test_router_uses_first_available_provider() -> None:
 
 
 @pytest.mark.asyncio
-async def test_router_falls_back_when_primary_unavailable() -> None:
+async def test_router_falls_back_when_primary_unavailable(tmp_path) -> None:
     claude = make_mock_agent("claude", available=False)
     codex = make_mock_agent("codex", available=True)
 
     from src.processing.router import Router
-    router = Router(agents=[claude, codex])
-    request = MagicMock(prompt="write code", tier="complex")
+    from src.agents.base import AgentRequest
+    router = Router(agents=[claude, codex], retry_queue_path=tmp_path / "retry.json")
+    request = AgentRequest(request_id="r-2", prompt="write code", tier="complex")
     response = await router.route(request)
 
     assert response.provider_name == "codex"
@@ -48,13 +50,14 @@ async def test_router_falls_back_when_primary_unavailable() -> None:
 
 
 @pytest.mark.asyncio
-async def test_router_raises_when_all_fail() -> None:
+async def test_router_raises_when_all_fail(tmp_path) -> None:
     claude = make_mock_agent("claude", raises=True)
     codex = make_mock_agent("codex", raises=True)
 
     from src.processing.router import Router, AllProvidersUnavailableError
-    router = Router(agents=[claude, codex])
-    request = MagicMock(prompt="deploy everything", tier="complex")
+    from src.agents.base import AgentRequest
+    router = Router(agents=[claude, codex], retry_queue_path=tmp_path / "retry.json")
+    request = AgentRequest(request_id="r-fail", prompt="deploy everything", tier="complex")
 
     with pytest.raises(AllProvidersUnavailableError):
         await router.route(request)

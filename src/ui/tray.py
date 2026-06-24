@@ -11,10 +11,21 @@ from PyQt6.QtCore import QObject
 
 from src.config.settings import JarvisConfig
 from src.memory.audit import get_logger
+from src.memory.session import SessionState
 
 _log = get_logger("ui.tray")
 
 _ICON_PATH = Path(__file__).parent / "resources" / "tray_icon.png"
+
+_STATE_TOOLTIPS: dict[SessionState, str] = {
+    SessionState.IDLE: "JARVIS — idle",
+    SessionState.LISTENING: "JARVIS — listening…",
+    SessionState.TRANSCRIBING: "JARVIS — transcribing…",
+    SessionState.CLASSIFYING: "JARVIS — processing…",
+    SessionState.EXECUTING: "JARVIS — processing…",
+    SessionState.AWAITING_APPROVAL: "JARVIS — awaiting approval",
+    SessionState.SPEAKING: "JARVIS — speaking…",
+}
 
 
 class JarvisTray(QObject):
@@ -46,6 +57,30 @@ class JarvisTray(QObject):
         self._tray.setContextMenu(menu)
         self._tray.show()
         _log.info("tray_shown")
+
+    def on_session_state_changed(self, state: SessionState) -> None:
+        """Update tray icon and tooltip to reflect current pipeline state."""
+        tooltip = _STATE_TOOLTIPS.get(state, "JARVIS")
+        self._tray.setToolTip(tooltip)
+        icon = self._state_icon(state)
+        self._tray.setIcon(icon)
+        _log.info("tray_state_updated", state=state)
+
+    def _state_icon(self, state: SessionState) -> QIcon:
+        icon_name = {
+            SessionState.IDLE: "tray_idle.png",
+            SessionState.LISTENING: "tray_listening.png",
+            SessionState.SPEAKING: "tray_speaking.png",
+        }.get(state, "tray_processing.png")
+        path = Path(__file__).parent / "resources" / icon_name
+        if path.exists():
+            return QIcon(str(path))
+        style = QApplication.style()
+        sp = {
+            SessionState.LISTENING: style.StandardPixmap.SP_MediaPlay,
+            SessionState.SPEAKING: style.StandardPixmap.SP_MediaVolume,
+        }.get(state, style.StandardPixmap.SP_ComputerIcon)
+        return style.standardIcon(sp)  # type: ignore[attr-defined]
 
     def _open_settings(self) -> None:
         from src.ui.settings_panel import SettingsPanel

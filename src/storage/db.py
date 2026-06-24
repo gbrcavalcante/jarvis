@@ -34,3 +34,9 @@ async def init_db() -> None:
     """Create all tables if they don't exist. Called once at application startup."""
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+async def get_db() -> AsyncSession:  # type: ignore[return]
+    """FastAPI dependency that yields a database session."""
+    async with AsyncSessionLocal() as session:
+        yield session
