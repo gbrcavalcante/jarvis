@@ -132,6 +132,7 @@ class JarvisConfig(BaseModel):
     retry: RetryConfig = RetryConfig()
     budget: BudgetConfig = BudgetConfig()
     logging: LoggingConfig = LoggingConfig()
+    vault_enabled: bool = False
 
     @model_validator(mode="before")
     @classmethod

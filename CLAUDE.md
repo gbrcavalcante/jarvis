@@ -59,12 +59,9 @@ task-003: implement transcription with faster-whisper
 ## Active Feature Plan
 
 <!-- SPECKIT START -->
-Current feature: **001-jarvis-voice-assistant**
-Implementation plan: `specs/001-jarvis-voice-assistant/plan.md`
-Spec: `specs/001-jarvis-voice-assistant/spec.md`
-Data model: `specs/001-jarvis-voice-assistant/data-model.md`
-Contracts: `specs/001-jarvis-voice-assistant/contracts/`
-Quickstart: `specs/001-jarvis-voice-assistant/quickstart.md`
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at specs/004-obsidian-memory/plan.md
 <!-- SPECKIT END -->
 
 ## Do Not
