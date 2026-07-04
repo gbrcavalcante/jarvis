@@ -35,6 +35,15 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def _write_port() -> None:
         _port_file().write_text(str(SERVER_PORT))
+        from src.storage.db import init_db, AsyncSessionLocal
+        from src.storage.backend_store import seed_built_in_router
+        await init_db()
+        async with AsyncSessionLocal() as db:
+            await seed_built_in_router(db)
+
+        import asyncio
+        from src.agents.health_monitor import run_health_monitor
+        asyncio.create_task(run_health_monitor())
 
     @app.on_event("shutdown")
     async def _remove_port() -> None:
@@ -45,7 +54,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"status": "ok", "version": "0.1.0"})
 
     # Route registration — deferred imports to avoid circular dependencies
-    from src.api.routes import pipeline, providers, settings, memory, dashboard, retry_queue, skills, mcp
+    from src.api.routes import pipeline, providers, settings, memory, dashboard, retry_queue, skills, mcp, backends
 
     app.include_router(pipeline.router)
     app.include_router(providers.router)
@@ -55,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(retry_queue.router)
     app.include_router(skills.router)
     app.include_router(mcp.router)
+    app.include_router(backends.router)
 
     return app
 

@@ -90,6 +90,7 @@ class SettingsPanel(QDialog):
         from src.ui.sections.budget import BudgetSection
         from src.ui.sections.general import GeneralSection
         from src.ui.sections.retry_queue import RetryQueueSection
+        from src.ui.sections.agents import AgentsSection
 
         section_defs: list[tuple[str, Callable[[], SettingsSection]]] = [
             ("General", GeneralSection),
@@ -102,6 +103,7 @@ class SettingsPanel(QDialog):
             ("Skills", SkillsSection),
             ("MCP", McpSection),
             ("Memory", MemorySection),
+            ("Agents", AgentsSection),
             ("Dashboard", BudgetSection),
             ("Retry Queue", RetryQueueSection),
         ]

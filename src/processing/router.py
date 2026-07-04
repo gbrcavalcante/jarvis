@@ -2,6 +2,10 @@
 
 Simple tasks  → Ollama (local, fast, free)
 Complex tasks → Claude → Codex → Gemini → (all fail) → voice notify + retry queue
+
+When an external agent backend is set active via Settings → Agents, the router
+dispatches to it first (via ExternalHttpAgent). Falls back to the Built-in chain
+if the external backend is unavailable or its circuit breaker is open.
 """
 
 from __future__ import annotations
@@ -12,7 +16,7 @@ import time
 from pathlib import Path
 from dataclasses import dataclass, field
 
-from typing import Callable
+from typing import Callable, Optional
 
 from src.agents.base import (
     AgentRequest, AgentResponse, BaseAgent,
@@ -22,6 +26,54 @@ from src.config.settings import BudgetConfig
 from src.memory.audit import get_logger
 
 _log = get_logger("processing.router")
+
+
+async def write_dispatch_event_sync(
+    backend_name: str,
+    request_id: str,
+    latency_ms: float,
+    success: bool,
+    error_message: str | None = None,
+    fallback_triggered: bool = False,
+) -> None:
+    """Append a BackendDispatchEvent audit row. Best-effort; never raises.
+
+    `route()` is always called from within an already-running event loop
+    (FastAPI request handler or the hotword pipeline), so this must be
+    awaited directly rather than spinning up a nested event loop.
+    """
+    try:
+        from src.storage.db import AsyncSessionLocal
+        from src.storage.backend_store import write_dispatch_event as _write
+
+        async with AsyncSessionLocal() as db:
+            await _write(
+                db,
+                backend_name=backend_name,
+                request_id=request_id,
+                latency_ms=latency_ms,
+                success=success,
+                error_message=error_message,
+                fallback_triggered=fallback_triggered,
+            )
+    except Exception as exc:
+        _log.debug("dispatch_event_write_failed", error=str(exc))
+
+
+async def get_active_backend_sync():
+    """Return the active AgentBackend row, or None if the DB is unavailable.
+
+    `route()` is always called from within an already-running event loop, so
+    this must be awaited directly rather than spinning up a nested event loop.
+    """
+    try:
+        from src.storage.db import AsyncSessionLocal
+        from src.storage.backend_store import get_active_backend as _get_active
+
+        async with AsyncSessionLocal() as db:
+            return await _get_active(db)
+    except Exception:
+        return None
 
 
 class BudgetExceededError(Exception):
@@ -86,10 +138,77 @@ class Router:
         self._accumulated_spend = spend
         self._alert_fired = False
 
+    def _get_log(self):  # type: ignore[return]
+        """Return the module-level logger (patchable in tests)."""
+        return _log
+
+    @property
+    def _log(self):  # type: ignore[return]
+        return _log
+
     async def route(self, request: AgentRequest) -> AgentResponse:
-        """Try each agent in order. Returns first successful response."""
+        """Try each agent in order. Returns first successful response.
+
+        If an external backend is active, dispatches to it first.
+        Falls back to the built-in chain on unavailability.
+        """
         self._check_budget()
         errors: list[str] = []
+        external_failed = False
+
+        # --- External backend dispatch ---
+        active = await get_active_backend_sync()
+        if active is not None and active.backend_type != "built_in":
+            from src.agents.external_http_agent import ExternalHttpAgent
+            ext = ExternalHttpAgent(
+                name=active.name,
+                base_url=active.base_url or "",
+                backend_type=active.backend_type,
+                model_name=active.model_name,
+            )
+            if active.health_status == "disconnected":
+                _log.warning(
+                    "backend_fallback",
+                    reason="disconnected",
+                    backend=active.name,
+                )
+                external_failed = True
+            elif await ext.is_available():
+                start = time.monotonic()
+                try:
+                    response = await ext.complete(request)
+                    await write_dispatch_event_sync(
+                        backend_name=active.name,
+                        request_id=request.request_id,
+                        latency_ms=(time.monotonic() - start) * 1000,
+                        success=True,
+                        fallback_triggered=False,
+                    )
+                    return response
+                except ContentError:
+                    raise
+                except Exception as exc:
+                    await write_dispatch_event_sync(
+                        backend_name=active.name,
+                        request_id=request.request_id,
+                        latency_ms=(time.monotonic() - start) * 1000,
+                        success=False,
+                        error_message=str(exc),
+                        fallback_triggered=False,
+                    )
+                    _log.warning("backend_fallback", reason=str(exc), backend=active.name)
+                    external_failed = True
+            else:
+                await write_dispatch_event_sync(
+                    backend_name=active.name,
+                    request_id=request.request_id,
+                    latency_ms=0.0,
+                    success=False,
+                    error_message="unavailable",
+                    fallback_triggered=False,
+                )
+                _log.warning("backend_fallback", reason="unavailable", backend=active.name)
+                external_failed = True
 
         for agent in self._agents:
             breaker = self._breakers[agent.name]
@@ -103,9 +222,17 @@ class Router:
                 errors.append(f"{agent.name}: unavailable")
                 continue
 
+            start = time.monotonic()
             try:
                 response = await agent.complete(request)
                 breaker.record_success()
+                await write_dispatch_event_sync(
+                    backend_name=agent.name,
+                    request_id=request.request_id,
+                    latency_ms=(time.monotonic() - start) * 1000,
+                    success=True,
+                    fallback_triggered=external_failed,
+                )
                 if response.provider_name != (self._agents[0].name if self._agents else agent.name):
                     _log.info("fallback_used", primary=self._agents[0].name, actual=response.provider_name)
                 return response
