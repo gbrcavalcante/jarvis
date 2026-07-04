@@ -8,7 +8,7 @@ from typing import Optional
 
 from sqlalchemy import (
     Boolean, Date, DateTime, Float, ForeignKey,
-    Integer, String, Text, Enum as SAEnum,
+    Integer, String, Text, Enum as SAEnum, UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -146,3 +146,53 @@ class McpConnection(Base):
     auth_method: Mapped[str] = mapped_column(String(20), default="none")
     credential_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     connected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AgentBackend(Base):
+    """Registered agent backend (built-in router or external HTTP service)."""
+
+    __tablename__ = "agent_backends"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    # built_in | openai_compatible | langgraph
+    backend_type: Mapped[str] = mapped_column(String(30), nullable=False, default="built_in")
+    base_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    model_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_built_in: Mapped[bool] = mapped_column(Boolean, default=False)
+    # connected | degraded | disconnected | unknown
+    health_status: Mapped[str] = mapped_column(String(20), default="unknown")
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    fallback_priority: Mapped[int] = mapped_column(Integer, default=99)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    dispatch_events: Mapped[list["BackendDispatchEvent"]] = relationship(
+        "BackendDispatchEvent",
+        back_populates="backend",
+        foreign_keys="BackendDispatchEvent.backend_name",
+        primaryjoin="AgentBackend.name == BackendDispatchEvent.backend_name",
+    )
+
+
+class BackendDispatchEvent(Base):
+    """Audit log entry for each request dispatched to an agent backend."""
+
+    __tablename__ = "backend_dispatch_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    backend_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    request_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    latency_ms: Mapped[float] = mapped_column(Float, nullable=False)
+    success: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    fallback_triggered: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    backend: Mapped[Optional["AgentBackend"]] = relationship(
+        "AgentBackend",
+        back_populates="dispatch_events",
+        foreign_keys=[backend_name],
+        primaryjoin="AgentBackend.name == BackendDispatchEvent.backend_name",
+    )
