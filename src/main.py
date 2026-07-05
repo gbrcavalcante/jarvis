@@ -58,6 +58,20 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
 
     set_pipeline(preprocessor, classifier, agent_router, session_mgr)
 
+    last_exchange: dict[str, tuple[str, str]] = {}
+
+    async def on_session_ended(session_id: str) -> None:
+        exchange = last_exchange.pop(session_id, None)
+        if exchange is None:
+            return
+        from src.memory.vault_writer import extract_and_write
+        prompt, response_text = exchange
+        await extract_and_write(
+            session_id=session_id, router=agent_router, prompt=prompt, response=response_text
+        )
+
+    session_mgr.on_session_ended(on_session_ended)
+
     async def on_hotword(phrase: str) -> None:
         if session_mgr.state != SessionState.IDLE:
             await session_mgr.end_session()
@@ -80,11 +94,14 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
 
         await session_mgr.transition(SessionState.EXECUTING)
         from src.agents.base import AgentRequest, AllProvidersUnavailableError
+        from src.memory.vault_context import build_context
         import uuid
         try:
+            system_prefix = await build_context(cleaned)
             response = await agent_router.route(
-                AgentRequest(prompt=cleaned, request_id=str(uuid.uuid4()))
+                AgentRequest(prompt=cleaned, request_id=str(uuid.uuid4()), system_prefix=system_prefix)
             )
+            last_exchange[session_mgr.session_id] = (cleaned, response.content)
             await session_mgr.transition(SessionState.SPEAKING)
             await tts.speak(response.content)
         except AllProvidersUnavailableError:

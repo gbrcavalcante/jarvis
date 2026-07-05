@@ -93,8 +93,11 @@ async def voice_command(body: VoiceCommandBody) -> JSONResponse:
         if session_mgr:
             await session_mgr.transition(SessionState.EXECUTING)
 
+        from src.memory.vault_context import build_context
+
         request_id = str(uuid.uuid4())
-        request = AgentRequest(prompt=cleaned, request_id=request_id)
+        system_prefix = await build_context(cleaned)
+        request = AgentRequest(prompt=cleaned, request_id=request_id, system_prefix=system_prefix)
         response = await agent_router.route(request)
 
         _log.info("voice_command_completed", tier=tier, provider=response.provider_name)

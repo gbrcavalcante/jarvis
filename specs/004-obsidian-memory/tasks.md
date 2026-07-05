@@ -37,17 +37,17 @@
 
 > **Write FIRST, confirm FAILING before implementation**
 
-- [ ] T008 [P] Write test: `Vault.connect(path)` succeeds for an existing writable path and creates `_jarvis/` in `tests/unit/memory/test_vault.py`
-- [ ] T009 [P] Write test: `Vault.connect(path)` rejects a path that is the JARVIS project directory (or an ancestor/descendant of it) in `tests/unit/memory/test_vault.py`
-- [ ] T010 [P] Write test: `Vault.connect(path)` rejects a non-existent or non-writable path, leaving any previous vault active, in `tests/unit/memory/test_vault.py`
-- [ ] T011 [P] Write test: `Vault.disconnect()` clears the keychain-stored path and sets `is_connected` to `False` in `tests/unit/memory/test_vault.py`
-- [ ] T012 [P] Write test: `Vault.is_connected` becomes `False` when the stored path no longer exists on disk (lazy re-check) in `tests/unit/memory/test_vault.py`
+- [X] T008 [P] Write test: `Vault.connect(path)` succeeds for an existing writable path and creates `_jarvis/` in `tests/unit/memory/test_vault.py`
+- [X] T009 [P] Write test: `Vault.connect(path)` rejects a path that is the JARVIS project directory (or an ancestor/descendant of it) in `tests/unit/memory/test_vault.py`
+- [X] T010 [P] Write test: `Vault.connect(path)` rejects a non-existent or non-writable path, leaving any previous vault active, in `tests/unit/memory/test_vault.py`
+- [X] T011 [P] Write test: `Vault.disconnect()` clears the keychain-stored path and sets `is_connected` to `False` in `tests/unit/memory/test_vault.py`
+- [X] T012 [P] Write test: `Vault.is_connected` becomes `False` when the stored path no longer exists on disk (lazy re-check) in `tests/unit/memory/test_vault.py`
 
 ### Implementation for Foundational
 
-- [ ] T013 Implement `Vault` class in `src/memory/vault.py`: `connect(path)`, `disconnect()`, `is_connected` property, `path` property, `_jarvis/` subfolder creation, path validation rules (existence, writability, not the project directory), path persisted via `src.config.keychain.write_credential("vault", "path", ...)`
-- [ ] T014 Add `vault_enabled: bool = False` field to `JarvisConfig` in `src/config/settings.py`
-- [ ] T015 Register the (initially empty) `/vault` router in `src/api/server.py` (import and include `vault.py` router with prefix `/vault`)
+- [X] T013 Implement `Vault` class in `src/memory/vault.py`: `connect(path)`, `disconnect()`, `is_connected` property, `path` property, `_jarvis/` subfolder creation, path validation rules (existence, writability, not the project directory), path persisted via `src.config.keychain.write_credential("vault", "path", ...)`
+- [X] T014 Add `vault_enabled: bool = False` field to `JarvisConfig` in `src/config/settings.py`
+- [X] T015 Register the (initially empty) `/vault` router in `src/api/server.py` (import and include `vault.py` router with prefix `/vault`)
 
 **Checkpoint**: Foundation ready — all user story work can now begin.
 
@@ -63,19 +63,19 @@
 
 > **Write FIRST, confirm FAILING before implementation**
 
-- [ ] T016 [P] [US1] Write test: `GET /vault/status` returns `connected: false` when no vault is configured in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T017 [P] [US1] Write test: `POST /vault/connect` returns 200 and `connected: true` for a valid path in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T018 [P] [US1] Write test: `POST /vault/connect` returns 400 for a non-existent/non-writable path in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T019 [P] [US1] Write test: `POST /vault/connect` returns 409 for the JARVIS project directory in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T020 [P] [US1] Write test: `POST /vault/disconnect` returns `connected: false` in `tests/unit/api/test_vault_endpoint.py`
+- [X] T016 [P] [US1] Write test: `GET /vault/status` returns `connected: false` when no vault is configured in `tests/unit/api/test_vault_endpoint.py`
+- [X] T017 [P] [US1] Write test: `POST /vault/connect` returns 200 and `connected: true` for a valid path in `tests/unit/api/test_vault_endpoint.py`
+- [X] T018 [P] [US1] Write test: `POST /vault/connect` returns 400 for a non-existent/non-writable path in `tests/unit/api/test_vault_endpoint.py`
+- [X] T019 [P] [US1] Write test: `POST /vault/connect` returns 409 for the JARVIS project directory in `tests/unit/api/test_vault_endpoint.py`
+- [X] T020 [P] [US1] Write test: `POST /vault/disconnect` returns `connected: false` in `tests/unit/api/test_vault_endpoint.py`
 
 ### Implementation for US1
 
-- [ ] T021 [US1] Implement `GET /vault/status` in `src/api/routes/vault.py` (returns connected/path/note_count/last_indexed_at)
-- [ ] T022 [US1] Implement `POST /vault/connect` in `src/api/routes/vault.py` (calls `Vault.connect`, maps validation failures to 400/409, sets `vault_enabled=True`)
-- [ ] T023 [US1] Implement `POST /vault/disconnect` in `src/api/routes/vault.py` (calls `Vault.disconnect`, sets `vault_enabled=False`)
-- [ ] T024 [US1] Extend `MemorySection` in `src/ui/sections/memory.py`: "No vault configured" state with a folder picker (`QFileDialog`), current-path display with Change/Disconnect actions, wired to `GET /vault/status`, `POST /vault/connect`, `POST /vault/disconnect`
-- [ ] T025 [US1] Show inline error message in `MemorySection` when connect fails (400/409), keeping the previous vault (if any) displayed as active
+- [X] T021 [US1] Implement `GET /vault/status` in `src/api/routes/vault.py` (returns connected/path/note_count/last_indexed_at)
+- [X] T022 [US1] Implement `POST /vault/connect` in `src/api/routes/vault.py` (calls `Vault.connect`, maps validation failures to 400/409, sets `vault_enabled=True`)
+- [X] T023 [US1] Implement `POST /vault/disconnect` in `src/api/routes/vault.py` (calls `Vault.disconnect`, sets `vault_enabled=False`)
+- [X] T024 [US1] Extend `MemorySection` in `src/ui/sections/memory.py`: "No vault configured" state with a folder picker (`QFileDialog`), current-path display with Change/Disconnect actions, wired to `GET /vault/status`, `POST /vault/connect`, `POST /vault/disconnect`
+- [X] T025 [US1] Show inline error message in `MemorySection` when connect fails (400/409), keeping the previous vault (if any) displayed as active
 
 **Checkpoint**: `GET /vault/status`, `POST /vault/connect`, `POST /vault/disconnect` work end-to-end. Settings → Memory shows vault state and allows connect/disconnect. No context injection or writing yet.
 
@@ -91,20 +91,20 @@
 
 > **Write FIRST, confirm FAILING before implementation**
 
-- [ ] T026 [P] [US2] Write test: `VaultIndex` parses title (heading or filename), frontmatter tags, and `[[wiki-links]]` from a `.md` file in `tests/unit/memory/test_vault_search.py`
-- [ ] T027 [P] [US2] Write test: `VaultIndex.search(query)` returns notes ranked by token-overlap score, boosted by matching frontmatter tags in `tests/unit/memory/test_vault_search.py`
-- [ ] T028 [P] [US2] Write test: `VaultIndex` re-parses only files whose `mtime` changed since the last search (lazy rebuild) in `tests/unit/memory/test_vault_search.py`
-- [ ] T029 [P] [US2] Write test: `build_context(query)` returns an empty string when no vault is connected in `tests/unit/memory/test_vault_context.py`
-- [ ] T030 [P] [US2] Write test: `build_context(query)` returns excerpt text for a matching note in `tests/unit/memory/test_vault_context.py`
-- [ ] T031 [P] [US2] Write test: `build_context(query)` returns an empty string (never raises) when the vault path is unreadable, and logs `vault_unavailable` in `tests/unit/memory/test_vault_context.py`
+- [X] T026 [P] [US2] Write test: `VaultIndex` parses title (heading or filename), frontmatter tags, and `[[wiki-links]]` from a `.md` file in `tests/unit/memory/test_vault_search.py`
+- [X] T027 [P] [US2] Write test: `VaultIndex.search(query)` returns notes ranked by token-overlap score, boosted by matching frontmatter tags in `tests/unit/memory/test_vault_search.py`
+- [X] T028 [P] [US2] Write test: `VaultIndex` re-parses only files whose `mtime` changed since the last search (lazy rebuild) in `tests/unit/memory/test_vault_search.py`
+- [X] T029 [P] [US2] Write test: `build_context(query)` returns an empty string when no vault is connected in `tests/unit/memory/test_vault_context.py`
+- [X] T030 [P] [US2] Write test: `build_context(query)` returns excerpt text for a matching note in `tests/unit/memory/test_vault_context.py`
+- [X] T031 [P] [US2] Write test: `build_context(query)` returns an empty string (never raises) when the vault path is unreadable, and logs `vault_unavailable` in `tests/unit/memory/test_vault_context.py`
 
 ### Implementation for US2
 
-- [ ] T032 [US2] Implement `VaultNote` parsing (title/content/tags/links extraction) and `VaultIndex` (mtime-based lazy rebuild) in `src/memory/vault_search.py`
-- [ ] T033 [US2] Implement `VaultIndex.search(query) -> list[VaultSearchResult]` (token-overlap scoring + tag boost) in `src/memory/vault_search.py`
-- [ ] T034 [US2] Implement `build_context(query) -> str` in `src/memory/vault_context.py`: wraps `VaultIndex.search` in `asyncio.to_thread`, returns top-N excerpts joined as context, empty string + `vault_unavailable` log on any failure
-- [ ] T035 [US2] Wire `build_context()` into `src/api/routes/pipeline.py`'s `/voice/command` handler: populate `AgentRequest.system_prefix` before calling `agent_router.route()`
-- [ ] T036 [US2] Wire `build_context()` into `src/main.py`'s `on_hotword` callback the same way, for the direct audio pipeline path
+- [X] T032 [US2] Implement `VaultNote` parsing (title/content/tags/links extraction) and `VaultIndex` (mtime-based lazy rebuild) in `src/memory/vault_search.py`
+- [X] T033 [US2] Implement `VaultIndex.search(query) -> list[VaultSearchResult]` (token-overlap scoring + tag boost) in `src/memory/vault_search.py`
+- [X] T034 [US2] Implement `build_context(query) -> str` in `src/memory/vault_context.py`: wraps `VaultIndex.search` in `asyncio.to_thread`, returns top-N excerpts joined as context, empty string + `vault_unavailable` log on any failure
+- [X] T035 [US2] Wire `build_context()` into `src/api/routes/pipeline.py`'s `/voice/command` handler: populate `AgentRequest.system_prefix` before calling `agent_router.route()`
+- [X] T036 [US2] Wire `build_context()` into `src/main.py`'s `on_hotword` callback the same way, for the direct audio pipeline path
 
 **Checkpoint**: US1 and US2 both independently testable. Voice commands are now vault-aware when a vault is connected; behavior is unchanged when it isn't.
 
@@ -120,16 +120,16 @@
 
 > **Write FIRST, confirm FAILING before implementation**
 
-- [ ] T037 [P] [US3] Write test: `extract_and_write()` calls the active `Router` with an extraction prompt and writes a `KnowledgeEntry` to `_jarvis/knowledge/<topic-slug>.md` in `tests/unit/memory/test_vault_writer.py`
-- [ ] T038 [P] [US3] Write test: `extract_and_write()` updates the existing file when the same topic slug already exists, rather than creating a duplicate, in `tests/unit/memory/test_vault_writer.py`
-- [ ] T039 [P] [US3] Write test: `extract_and_write()` writes no file when the extraction result is `null`/no actionable knowledge in `tests/unit/memory/test_vault_writer.py`
-- [ ] T040 [P] [US3] Write test: `extract_and_write()` never includes raw transcript text in the written file (only the extracted summary) in `tests/unit/memory/test_vault_writer.py`
-- [ ] T041 [P] [US3] Write test: `extract_and_write()` is a no-op (logs `vault_unavailable`, does not raise) when no vault is connected in `tests/unit/memory/test_vault_writer.py`
+- [X] T037 [P] [US3] Write test: `extract_and_write()` calls the active `Router` with an extraction prompt and writes a `KnowledgeEntry` to `_jarvis/knowledge/<topic-slug>.md` in `tests/unit/memory/test_vault_writer.py`
+- [X] T038 [P] [US3] Write test: `extract_and_write()` updates the existing file when the same topic slug already exists, rather than creating a duplicate, in `tests/unit/memory/test_vault_writer.py`
+- [X] T039 [P] [US3] Write test: `extract_and_write()` writes no file when the extraction result is `null`/no actionable knowledge in `tests/unit/memory/test_vault_writer.py`
+- [X] T040 [P] [US3] Write test: `extract_and_write()` never includes raw transcript text in the written file (only the extracted summary) in `tests/unit/memory/test_vault_writer.py`
+- [X] T041 [P] [US3] Write test: `extract_and_write()` is a no-op (logs `vault_unavailable`, does not raise) when no vault is connected in `tests/unit/memory/test_vault_writer.py`
 
 ### Implementation for US3
 
-- [ ] T042 [US3] Implement `KnowledgeEntry` extraction + upsert-by-topic-slug write logic in `src/memory/vault_writer.py` (calls the existing `Router`, never writes raw transcript text)
-- [ ] T043 [US3] Register `extract_and_write` as a `SessionManager.on_session_ended()` callback in `src/main.py`, passing the last prompt/response exchange held only in memory for that session
+- [X] T042 [US3] Implement `KnowledgeEntry` extraction + upsert-by-topic-slug write logic in `src/memory/vault_writer.py` (calls the existing `Router`, never writes raw transcript text)
+- [X] T043 [US3] Register `extract_and_write` as a `SessionManager.on_session_ended()` callback in `src/main.py`, passing the last prompt/response exchange held only in memory for that session
 
 **Checkpoint**: US1, US2, US3 all independently functional. Vault grows with extracted knowledge across sessions.
 
@@ -145,19 +145,19 @@
 
 > **Write FIRST, confirm FAILING before implementation**
 
-- [ ] T044 [P] [US4] Write test: graph derivation produces one `GraphEdge` per resolved `[[wiki-link]]` and drops unresolved links in `tests/unit/memory/test_graph.py`
-- [ ] T045 [P] [US4] Write test: `GraphNode.connection_count` equals the number of edges touching that node in `tests/unit/memory/test_graph.py`
-- [ ] T046 [P] [US4] Write test: `GET /vault/graph` returns nodes/edges matching the connected vault's notes in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T047 [P] [US4] Write test: `GET /vault/graph` returns 409 when no vault is connected in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T048 [P] [US4] Write test: `GET /vault/notes/{note_id}` returns the note's title/content, and 404 for an unknown id, in `tests/unit/api/test_vault_endpoint.py`
-- [ ] T049 [P] [US4] Write test: `graph_view.py` panel renders one node widget per `GraphNode` and one edge per `GraphEdge`, using `qtbot`, in `tests/unit/ui/test_graph_view.py`
+- [X] T044 [P] [US4] Write test: graph derivation produces one `GraphEdge` per resolved `[[wiki-link]]` and drops unresolved links in `tests/unit/memory/test_graph.py`
+- [X] T045 [P] [US4] Write test: `GraphNode.connection_count` equals the number of edges touching that node in `tests/unit/memory/test_graph.py`
+- [X] T046 [P] [US4] Write test: `GET /vault/graph` returns nodes/edges matching the connected vault's notes in `tests/unit/api/test_vault_endpoint.py`
+- [X] T047 [P] [US4] Write test: `GET /vault/graph` returns 409 when no vault is connected in `tests/unit/api/test_vault_endpoint.py`
+- [X] T048 [P] [US4] Write test: `GET /vault/notes/{note_id}` returns the note's title/content, and 404 for an unknown id, in `tests/unit/api/test_vault_endpoint.py`
+- [X] T049 [P] [US4] Write test: `graph_view.py` panel renders one node widget per `GraphNode` and one edge per `GraphEdge`, using `qtbot`, in `tests/unit/ui/test_graph_view.py`
 
 ### Implementation for US4
 
-- [ ] T050 [US4] Implement `GraphNode`/`GraphEdge` derivation from `VaultIndex` links, plus a fixed-iteration force-directed layout, in `src/memory/graph.py`
-- [ ] T051 [US4] Implement `GET /vault/graph` and `GET /vault/notes/{note_id}` in `src/api/routes/vault.py`
-- [ ] T052 [US4] Implement the Graph View panel in `src/ui/graph_view.py`: `QGraphicsView`/`QGraphicsScene` rendering nodes as `QGraphicsEllipseItem`, edges as `QGraphicsLineItem`, click-to-load a side panel via `GET /vault/notes/{note_id}`
-- [ ] T053 [US4] Add an "Open Graph View" button to `MemorySection` in `src/ui/sections/memory.py` that opens the panel
+- [X] T050 [US4] Implement `GraphNode`/`GraphEdge` derivation from `VaultIndex` links, plus a fixed-iteration force-directed layout, in `src/memory/graph.py`
+- [X] T051 [US4] Implement `GET /vault/graph` and `GET /vault/notes/{note_id}` in `src/api/routes/vault.py`
+- [X] T052 [US4] Implement the Graph View panel in `src/ui/graph_view.py`: `QGraphicsView`/`QGraphicsScene` rendering nodes as `QGraphicsEllipseItem`, edges as `QGraphicsLineItem`, click-to-load a side panel via `GET /vault/notes/{note_id}`
+- [X] T053 [US4] Add an "Open Graph View" button to `MemorySection` in `src/ui/sections/memory.py` that opens the panel
 
 **Checkpoint**: All four user stories complete and independently testable.
 
@@ -165,10 +165,10 @@
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] Add structlog audit events (`vault_connected`, `vault_disconnected`, `vault_search`, `vault_write`, `vault_unavailable`) across `src/memory/vault.py`, `vault_search.py`, `vault_context.py`, `vault_writer.py`
-- [ ] T055 Write end-to-end integration test in `tests/unit/api/test_vault_endpoint.py`: connect → write a note → `POST /voice/command` → verify `system_prefix` was populated → verify a `_jarvis/knowledge/` file exists after session end
-- [ ] T056 Run `uv run pytest --cov=src --cov-fail-under=80` and resolve any gaps
-- [ ] T057 Validate quickstart.md scenarios 1–8 manually
+- [X] T054 [P] Add structlog audit events (`vault_connected`, `vault_disconnected`, `vault_search`, `vault_write`, `vault_unavailable`) across `src/memory/vault.py`, `vault_search.py`, `vault_context.py`, `vault_writer.py`
+- [X] T055 Write end-to-end integration test in `tests/unit/api/test_vault_endpoint.py`: connect → write a note → `POST /voice/command` → verify `system_prefix` was populated → verify a `_jarvis/knowledge/` file exists after session end
+- [X] T056 Run `uv run pytest --cov=src --cov-fail-under=80` and resolve any gaps
+- [X] T057 Validate quickstart.md scenarios 1–8 manually
 
 ---
 

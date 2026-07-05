@@ -54,7 +54,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"status": "ok", "version": "0.1.0"})
 
     # Route registration — deferred imports to avoid circular dependencies
-    from src.api.routes import pipeline, providers, settings, memory, dashboard, retry_queue, skills, mcp, backends
+    from src.api.routes import pipeline, providers, settings, memory, dashboard, retry_queue, skills, mcp, backends, vault
 
     app.include_router(pipeline.router)
     app.include_router(providers.router)
@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
     app.include_router(skills.router)
     app.include_router(mcp.router)
     app.include_router(backends.router)
+    app.include_router(vault.router)
 
     return app
 
