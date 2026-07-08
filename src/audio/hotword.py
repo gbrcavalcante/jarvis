@@ -51,7 +51,13 @@ def ensure_models_downloaded(phrases: list[str]) -> None:
             _log.warning("hotword_model_no_url", phrase=phrase)
             continue
         _log.info("hotword_model_downloading", phrase=phrase, url=url)
-        urllib.request.urlretrieve(url, dest)
+        try:
+            urllib.request.urlretrieve(url, dest)
+        except OSError as exc:
+            _log.error("hotword_model_download_failed", phrase=phrase, url=url, error=str(exc))
+            raise RuntimeError(
+                f"Failed to download hotword model for '{phrase}' from {url}: {exc}"
+            ) from exc
         _log.info("hotword_model_downloaded", phrase=phrase)
 
 
@@ -66,6 +72,19 @@ class HotwordDetector:
 
     def _load_model(self, phrases: list[str]) -> object:
         import openwakeword  # type: ignore[import]
+
+        # openwakeword's shared melspectrogram/embedding/VAD models are not
+        # bundled with the pip package and must be fetched on first use.
+        try:
+            import openwakeword.utils  # type: ignore[import]
+            # download_models() always fetches the shared feature/VAD models
+            # regardless of model_names; passing our own phrases (rather than
+            # an empty list, which would pull openwakeword's entire official
+            # wakeword library) keeps this scoped to what we actually use.
+            openwakeword.utils.download_models(model_names=list(phrases))
+        except ImportError:
+            pass
+        ensure_models_downloaded(phrases)
         model_paths = []
         for phrase in phrases:
             if phrase in _BUNDLED_MODELS:

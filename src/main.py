@@ -44,7 +44,8 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
 
     transcriber = Transcriber(model_size="base", language=language)
     tts = TTSEngine(language=lang_cfg, gender=gender)
-    hotword = HotwordDetector(phrases=[hotword_phrase], threshold=0.5)
+    # Model loading may download files on first run; keep that off the event loop.
+    hotword = await asyncio.to_thread(HotwordDetector, phrases=[hotword_phrase], threshold=0.5)
     mic = Microphone()
 
     preprocessor = Preprocessor()

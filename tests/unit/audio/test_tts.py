@@ -33,8 +33,10 @@ def test_tts_ensure_loaded_calls_piper(tmp_path) -> None:
     assert engine._voice is None
 
     with patch("src.audio.tts._MODEL_CACHE_DIR", tmp_path):
-        # Create a fake model file so the missing-model path is skipped
+        # Create fake model files so ensure_models_downloaded and the
+        # missing-model path both treat the voice as already cached
         (tmp_path / f"{engine.model_name}.onnx").write_bytes(b"fake")
+        (tmp_path / f"{engine.model_name}.onnx.json").write_bytes(b"{}")
         engine._ensure_loaded()
 
     assert engine._voice is mock_voice_instance

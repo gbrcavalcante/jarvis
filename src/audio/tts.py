@@ -64,7 +64,13 @@ def ensure_models_downloaded(language: str = "en-us", gender: str = "female") ->
             continue
         url = f"{_PIPER_BASE_URL}/{rel}{suffix}"
         _log.info("tts_model_downloading", model=model_name, url=url)
-        urllib.request.urlretrieve(url, dest)
+        try:
+            urllib.request.urlretrieve(url, dest)
+        except OSError as exc:
+            _log.error("tts_model_download_failed", model=model_name, url=url, error=str(exc))
+            raise RuntimeError(
+                f"Failed to download TTS voice model '{model_name}' from {url}: {exc}"
+            ) from exc
         _log.info("tts_model_downloaded", model=model_name, file=suffix)
 
 
@@ -82,6 +88,7 @@ class TTSEngine:
     def _ensure_loaded(self) -> None:
         if self._voice is None:
             import piper  # type: ignore[import]
+            ensure_models_downloaded(self.language, self.gender)
             model_path = _MODEL_CACHE_DIR / f"{self.model_name}.onnx"
             if not model_path.exists():
                 _log.warning("tts_model_missing", model=self.model_name)
@@ -92,8 +99,9 @@ class TTSEngine:
 
     async def synthesize(self, text: str) -> bytes:
         """Synthesize text to raw audio bytes (WAV)."""
-        self._ensure_loaded()
         loop = asyncio.get_event_loop()
+        # Model loading may download files on first use; keep that off the event loop.
+        await loop.run_in_executor(None, self._ensure_loaded)
 
         def _run() -> bytes:
             buf = io.BytesIO()
