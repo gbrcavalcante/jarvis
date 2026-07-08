@@ -77,10 +77,11 @@ class HotwordDetector:
         # bundled with the pip package and must be fetched on first use.
         try:
             import openwakeword.utils  # type: ignore[import]
-            # Pass a sentinel so only the always-downloaded feature/VAD
-            # models are fetched, not the full library of official
-            # wakeword models (we only use our own hey_jarvis/ei_jarvis).
-            openwakeword.utils.download_models(model_names=["_jarvis_feature_models_only"])
+            # download_models() always fetches the shared feature/VAD models
+            # regardless of model_names; passing our own phrases (rather than
+            # an empty list, which would pull openwakeword's entire official
+            # wakeword library) keeps this scoped to what we actually use.
+            openwakeword.utils.download_models(model_names=list(phrases))
         except ImportError:
             pass
         ensure_models_downloaded(phrases)

@@ -99,8 +99,9 @@ class TTSEngine:
 
     async def synthesize(self, text: str) -> bytes:
         """Synthesize text to raw audio bytes (WAV)."""
-        self._ensure_loaded()
         loop = asyncio.get_event_loop()
+        # Model loading may download files on first use; keep that off the event loop.
+        await loop.run_in_executor(None, self._ensure_loaded)
 
         def _run() -> bytes:
             buf = io.BytesIO()
