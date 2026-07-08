@@ -82,6 +82,7 @@ class TTSEngine:
     def _ensure_loaded(self) -> None:
         if self._voice is None:
             import piper  # type: ignore[import]
+            ensure_models_downloaded(self.language, self.gender)
             model_path = _MODEL_CACHE_DIR / f"{self.model_name}.onnx"
             if not model_path.exists():
                 _log.warning("tts_model_missing", model=self.model_name)

@@ -66,6 +66,18 @@ class HotwordDetector:
 
     def _load_model(self, phrases: list[str]) -> object:
         import openwakeword  # type: ignore[import]
+
+        # openwakeword's shared melspectrogram/embedding/VAD models are not
+        # bundled with the pip package and must be fetched on first use.
+        try:
+            import openwakeword.utils  # type: ignore[import]
+            # Pass a sentinel so only the always-downloaded feature/VAD
+            # models are fetched, not the full library of official
+            # wakeword models (we only use our own hey_jarvis/ei_jarvis).
+            openwakeword.utils.download_models(model_names=["_jarvis_feature_models_only"])
+        except ImportError:
+            pass
+        ensure_models_downloaded(phrases)
         model_paths = []
         for phrase in phrases:
             if phrase in _BUNDLED_MODELS:
