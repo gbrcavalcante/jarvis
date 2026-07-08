@@ -64,7 +64,13 @@ def ensure_models_downloaded(language: str = "en-us", gender: str = "female") ->
             continue
         url = f"{_PIPER_BASE_URL}/{rel}{suffix}"
         _log.info("tts_model_downloading", model=model_name, url=url)
-        urllib.request.urlretrieve(url, dest)
+        try:
+            urllib.request.urlretrieve(url, dest)
+        except OSError as exc:
+            _log.error("tts_model_download_failed", model=model_name, url=url, error=str(exc))
+            raise RuntimeError(
+                f"Failed to download TTS voice model '{model_name}' from {url}: {exc}"
+            ) from exc
         _log.info("tts_model_downloaded", model=model_name, file=suffix)
 
 

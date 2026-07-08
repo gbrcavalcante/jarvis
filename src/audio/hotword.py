@@ -51,7 +51,13 @@ def ensure_models_downloaded(phrases: list[str]) -> None:
             _log.warning("hotword_model_no_url", phrase=phrase)
             continue
         _log.info("hotword_model_downloading", phrase=phrase, url=url)
-        urllib.request.urlretrieve(url, dest)
+        try:
+            urllib.request.urlretrieve(url, dest)
+        except OSError as exc:
+            _log.error("hotword_model_download_failed", phrase=phrase, url=url, error=str(exc))
+            raise RuntimeError(
+                f"Failed to download hotword model for '{phrase}' from {url}: {exc}"
+            ) from exc
         _log.info("hotword_model_downloaded", phrase=phrase)
 
 
