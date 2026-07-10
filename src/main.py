@@ -21,6 +21,38 @@ from src.storage.db import init_db
 _log = get_logger("main")
 
 
+_SILENCE_AMPLITUDE_THRESHOLD = 500  # int16 scale (max 32767)
+_SILENCE_CHUNKS_TO_STOP = 37  # ~1.2s of silence at 512 frames / 16kHz
+_MAX_RECORD_CHUNKS = 250  # ~8s safety cap so a stuck mic can't hang forever
+
+
+def _is_silent(chunk: "np.ndarray", threshold: int = _SILENCE_AMPLITUDE_THRESHOLD) -> bool:
+    """True if a 16-bit PCM chunk's mean absolute amplitude is below threshold."""
+    import numpy as np
+    return bool(np.abs(chunk).mean() < threshold)
+
+
+def _generate_chime_samples(sample_rate: int = 16_000) -> "np.ndarray":
+    """Short two-tone ascending beep (~180ms) played when the hotword activates."""
+    import numpy as np
+    tone_duration = 0.09
+    t = np.linspace(0, tone_duration, int(sample_rate * tone_duration), endpoint=False)
+    tone1 = 0.15 * np.sin(2 * np.pi * 880 * t)
+    tone2 = 0.15 * np.sin(2 * np.pi * 1320 * t)
+    return np.concatenate([tone1, tone2]).astype(np.float32)
+
+
+def _play_activation_chime() -> None:
+    """Blocking playback of the activation chime. Runs off the event loop."""
+    try:
+        import sounddevice as sd
+        sample_rate = 16_000
+        sd.play(_generate_chime_samples(sample_rate), sample_rate)
+        sd.wait()
+    except Exception as exc:  # pragma: no cover - best-effort UX, never fatal
+        _log.warning("activation_chime_failed", error=str(exc))
+
+
 async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     """Wire up the audio pipeline coroutine."""
     from src.audio.microphone import Microphone
@@ -51,7 +83,7 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     preprocessor = Preprocessor()
     classifier = Classifier(overrides={})
     agent_router = Router(agents=[
-        OllamaAgent(),
+        OllamaAgent(model="llama3.2:1b"),
         ClaudeAgent(),
         CodexAgent(),
         GeminiAgent(),
@@ -73,14 +105,95 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
 
     session_mgr.on_session_ended(on_session_ended)
 
+    # "guarding" covers the moment a wake word fires through the end of the
+    # activation chime — openWakeWord has no built-in cooldown and can refire
+    # on several consecutive chunks of the same utterance, and nothing must
+    # touch the mic/speaker (hotword.process_chunk or another chime) during
+    # that window, or concurrent PortAudio calls corrupt native state and
+    # crash the process. "active" covers the actual command-recording phase.
+    recording = {
+        "guarding": False,
+        "active": False,
+        "chunks": [],
+        "silence_run": 0,
+        "speech_started": False,
+    }
+    recording_done = asyncio.Event()
+
+    async def on_audio_chunk(chunk: object) -> None:
+        if recording["active"]:
+            recording["chunks"].append(chunk)
+            if _is_silent(chunk):
+                # Leading silence (before the user starts talking) doesn't
+                # count toward the cutoff, or recording would end before
+                # any speech is captured.
+                if recording["speech_started"]:
+                    recording["silence_run"] += 1
+            else:
+                recording["speech_started"] = True
+                recording["silence_run"] = 0
+            if (
+                (recording["speech_started"] and recording["silence_run"] >= _SILENCE_CHUNKS_TO_STOP)
+                or len(recording["chunks"]) >= _MAX_RECORD_CHUNKS
+            ):
+                recording["active"] = False
+                recording_done.set()
+        elif not recording["guarding"]:
+            await hotword.process_chunk(chunk)
+
+    turn_in_progress = {"value": False}
+
     async def on_hotword(phrase: str) -> None:
-        if session_mgr.state != SessionState.IDLE:
-            await session_mgr.end_session()
-        await session_mgr.start_session()
-        await session_mgr.transition(SessionState.TRANSCRIBING)
+        if turn_in_progress["value"] or recording["guarding"] or recording["active"]:
+            # Ignore a duplicate wake trigger for as long as any part of the
+            # previous turn (recording, transcribing, thinking, or speaking)
+            # is still running. SessionManager._session_id and the TTS/mic
+            # audio devices are shared, single-owner resources — running two
+            # turns concurrently corrupts session logging and makes two
+            # sd.play() calls fight over the same output, so nothing plays.
+            return
+        turn_in_progress["value"] = True
+        try:
+            await _handle_turn(phrase)
+        finally:
+            turn_in_progress["value"] = False
+
+    async def _handle_turn(phrase: str) -> None:
+        # Set synchronously (no `await` before this point) so chunk-processing
+        # tasks already queued for this event-loop tick can't slip past it.
+        recording["guarding"] = True
+
+        try:
+            # Play the activation chime before we start recording so it isn't
+            # picked up by the microphone as part of the user's command.
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, _play_activation_chime)
+
+            recording["active"] = True
+            recording["chunks"] = []
+            recording["silence_run"] = 0
+            recording["speech_started"] = False
+            recording_done.clear()
+            recording["guarding"] = False
+
+            if session_mgr.state != SessionState.IDLE:
+                await session_mgr.end_session()
+            await session_mgr.start_session()
+            await session_mgr.transition(SessionState.TRANSCRIBING)
+        except Exception:
+            recording["guarding"] = False
+            recording["active"] = False
+            raise
 
         import numpy as np
-        audio = np.zeros(16000, dtype=np.float32)  # placeholder for real mic buffer
+        await recording_done.wait()
+
+        raw = (
+            np.concatenate(recording["chunks"])
+            if recording["chunks"]
+            else np.zeros(1, dtype=np.int16)
+        )
+        audio = raw.astype(np.float32) / 32768.0
         transcript = await transcriber.transcribe(audio)
         _log.info("transcript_received", text=transcript.text)
 
@@ -112,7 +225,7 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
         await session_mgr.end_session()
 
     hotword.on_detected = on_hotword
-    mic.on_chunk(hotword.process_chunk)
+    mic.on_chunk(on_audio_chunk)
     mic.start()
 
     _log.info("pipeline_running", hotword=hotword_phrase, language=language)
@@ -178,8 +291,28 @@ def main() -> None:
 
     session_mgr = SessionManager()
 
-    # Run audio pipeline in asyncio event loop
-    asyncio.run(_run_pipeline(config, session_mgr))
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    from src.ui.tray import JarvisTray
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+    tray = JarvisTray(config, app)
+
+    async def _on_state_change(state: SessionState) -> None:
+        tray.state_changed.emit(state)
+
+    session_mgr.on_state_change(_on_state_change)
+
+    # Run the audio pipeline (asyncio) in a background thread so the Qt
+    # event loop can own the main thread, as PyQt6 requires.
+    pipeline_thread = threading.Thread(
+        target=lambda: asyncio.run(_run_pipeline(config, session_mgr)),
+        daemon=True,
+    )
+    pipeline_thread.start()
+
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

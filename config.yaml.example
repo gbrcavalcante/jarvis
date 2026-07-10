@@ -3,7 +3,7 @@
 # NEVER put API keys or secrets here — use the settings panel or CLI to store them securely in the OS keychain.
 
 provider: claude              # Active AI provider: claude | codex | gemini | ollama
-model: claude-sonnet-4-6      # Model identifier for the active provider
+model: claude-sonnet-5      # Model identifier for the active provider
 
 auth:
   method: api_key             # Authentication method: api_key | oauth

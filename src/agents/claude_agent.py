@@ -14,7 +14,7 @@ from src.memory.audit import get_logger
 
 _log = get_logger("agents.claude")
 _RETRY_DELAYS = [1, 2, 4, 8]
-_DEFAULT_MODEL = "claude-sonnet-4-6"
+_DEFAULT_MODEL = "claude-sonnet-5"
 
 
 class ClaudeAgent(BaseAgent):
