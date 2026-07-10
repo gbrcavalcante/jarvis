@@ -66,6 +66,7 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     from src.agents.claude_agent import ClaudeAgent
     from src.agents.codex_agent import CodexAgent
     from src.agents.gemini_agent import GeminiAgent
+    from src.agents.hermes_agent import HermesAgent
     from src.api.routes.pipeline import set_pipeline
 
     hotword_phrase = config.hotword_config.phrase.replace(" ", "_")
@@ -87,6 +88,7 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
         "claude": ClaudeAgent,
         "codex": CodexAgent,
         "gemini": GeminiAgent,
+        "hermes": HermesAgent,
     }
     agent_router = Router(agents=[
         agent_factories[name]()
