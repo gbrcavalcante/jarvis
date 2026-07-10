@@ -73,19 +73,29 @@ class PreProcessorResult:
 class Preprocessor:
     """Cleans and normalizes raw transcriptions using a lightweight AI model."""
 
-    def __init__(self) -> None:
+    _DEFAULT_PRIORITY = ["claude", "codex", "ollama"]
+
+    def __init__(self, provider_priority: list[str] | None = None) -> None:
+        self._provider_priority = provider_priority or self._DEFAULT_PRIORITY
         self._model_name, self._client = self._select_model()
 
     def _select_model(self) -> tuple[str, object]:
-        anthropic_key = read_credential("provider", "claude")
-        if anthropic_key:
-            import anthropic
-            return "claude-haiku-4-5", anthropic.AsyncAnthropic(api_key=anthropic_key)
-
-        openai_key = read_credential("provider", "codex")
-        if openai_key:
-            import openai
-            return "gpt-4o-mini", openai.AsyncOpenAI(api_key=openai_key)
+        priority = getattr(self, "_provider_priority", None) or self._DEFAULT_PRIORITY
+        for provider in priority:
+            if provider == "claude":
+                anthropic_key = read_credential("provider", "claude")
+                if anthropic_key:
+                    import anthropic
+                    return "claude-haiku-4-5", anthropic.AsyncAnthropic(api_key=anthropic_key)
+            elif provider == "codex":
+                openai_key = read_credential("provider", "codex")
+                if openai_key:
+                    import openai
+                    return "gpt-4o-mini", openai.AsyncOpenAI(api_key=openai_key)
+            elif provider == "ollama":
+                return "ollama:qwen2.5:3b", None
+            # gemini/hermes have no stage-1/2 client wiring yet; skip and
+            # fall through to the next entry in the priority order.
 
         return "ollama:qwen2.5:3b", None
 

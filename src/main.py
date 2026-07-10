@@ -80,13 +80,18 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
     hotword = await asyncio.to_thread(HotwordDetector, phrases=[hotword_phrase], threshold=0.5)
     mic = Microphone()
 
-    preprocessor = Preprocessor()
+    preprocessor = Preprocessor(provider_priority=config.provider_priority)
     classifier = Classifier(overrides={})
+    agent_factories = {
+        "ollama": lambda: OllamaAgent(model="llama3.2:1b"),
+        "claude": ClaudeAgent,
+        "codex": CodexAgent,
+        "gemini": GeminiAgent,
+    }
     agent_router = Router(agents=[
-        OllamaAgent(model="llama3.2:1b"),
-        ClaudeAgent(),
-        CodexAgent(),
-        GeminiAgent(),
+        agent_factories[name]()
+        for name in config.provider_priority
+        if name in agent_factories
     ])
 
     set_pipeline(preprocessor, classifier, agent_router, session_mgr)
