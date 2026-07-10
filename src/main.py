@@ -163,6 +163,21 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
         finally:
             turn_in_progress["value"] = False
 
+    async def _record_command() -> object:
+        """Reset the recording buffer and block until silence ends capture."""
+        import numpy as np
+        recording["active"] = True
+        recording["chunks"] = []
+        recording["silence_run"] = 0
+        recording["speech_started"] = False
+        recording_done.clear()
+        await recording_done.wait()
+        return (
+            np.concatenate(recording["chunks"])
+            if recording["chunks"]
+            else np.zeros(1, dtype=np.int16)
+        )
+
     async def _handle_turn(phrase: str) -> None:
         # Set synchronously (no `await` before this point) so chunk-processing
         # tasks already queued for this event-loop tick can't slip past it.
@@ -173,59 +188,55 @@ async def _run_pipeline(config: object, session_mgr: SessionManager) -> None:
             # picked up by the microphone as part of the user's command.
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, _play_activation_chime)
-
-            recording["active"] = True
-            recording["chunks"] = []
-            recording["silence_run"] = 0
-            recording["speech_started"] = False
-            recording_done.clear()
             recording["guarding"] = False
 
             if session_mgr.state != SessionState.IDLE:
                 await session_mgr.end_session()
             await session_mgr.start_session()
-            await session_mgr.transition(SessionState.TRANSCRIBING)
         except Exception:
             recording["guarding"] = False
             recording["active"] = False
             raise
 
         import numpy as np
-        await recording_done.wait()
+        is_follow_up = False
+        while True:
+            await session_mgr.transition(SessionState.TRANSCRIBING)
+            raw = await _record_command()
+            audio = raw.astype(np.float32) / 32768.0
+            transcript = await transcriber.transcribe(audio)
+            _log.info("transcript_received", text=transcript.text, follow_up=is_follow_up)
 
-        raw = (
-            np.concatenate(recording["chunks"])
-            if recording["chunks"]
-            else np.zeros(1, dtype=np.int16)
-        )
-        audio = raw.astype(np.float32) / 32768.0
-        transcript = await transcriber.transcribe(audio)
-        _log.info("transcript_received", text=transcript.text)
+            if not transcript.text:
+                # No follow-up command within the silence window — end the
+                # conversation; next time requires the hotword again.
+                break
 
-        if not transcript.text:
-            await session_mgr.end_session()
-            return
+            await session_mgr.transition(SessionState.CLASSIFYING)
+            cleaned = await preprocessor.clean(transcript.text)
+            tier = classifier.classify(cleaned)
+            _log.info("task_classified", tier=tier)
 
-        await session_mgr.transition(SessionState.CLASSIFYING)
-        cleaned = await preprocessor.clean(transcript.text)
-        tier = classifier.classify(cleaned)
-        _log.info("task_classified", tier=tier)
+            await session_mgr.transition(SessionState.EXECUTING)
+            from src.agents.base import AgentRequest, AllProvidersUnavailableError
+            from src.memory.vault_context import build_context
+            import uuid
+            try:
+                system_prefix = await build_context(cleaned)
+                response = await agent_router.route(
+                    AgentRequest(prompt=cleaned, request_id=str(uuid.uuid4()), system_prefix=system_prefix)
+                )
+                last_exchange[session_mgr.session_id] = (cleaned, response.content)
+                await session_mgr.transition(SessionState.SPEAKING)
+                await tts.speak(response.content)
+            except AllProvidersUnavailableError:
+                _log.error("all_providers_failed")
+                await tts.speak("Sorry, I could not reach any AI provider right now.")
 
-        await session_mgr.transition(SessionState.EXECUTING)
-        from src.agents.base import AgentRequest, AllProvidersUnavailableError
-        from src.memory.vault_context import build_context
-        import uuid
-        try:
-            system_prefix = await build_context(cleaned)
-            response = await agent_router.route(
-                AgentRequest(prompt=cleaned, request_id=str(uuid.uuid4()), system_prefix=system_prefix)
-            )
-            last_exchange[session_mgr.session_id] = (cleaned, response.content)
-            await session_mgr.transition(SessionState.SPEAKING)
-            await tts.speak(response.content)
-        except AllProvidersUnavailableError:
-            _log.error("all_providers_failed")
-            await tts.speak("Sorry, I could not reach any AI provider right now.")
+            # Keep listening for a follow-up command without requiring the
+            # hotword again, same as Alexa/Siri "follow-up mode".
+            is_follow_up = True
+            await session_mgr.transition(SessionState.LISTENING)
 
         await session_mgr.end_session()
 
