@@ -88,12 +88,11 @@ class SettingsPanel(QDialog):
         from src.ui.sections.mcp import McpSection
         from src.ui.sections.memory import MemorySection
         from src.ui.sections.budget import BudgetSection
-        from src.ui.sections.general import GeneralSection
         from src.ui.sections.retry_queue import RetryQueueSection
         from src.ui.sections.agents import AgentsSection
+        from src.ui.sections.priority import PrioritySection
 
         section_defs: list[tuple[str, Callable[[], SettingsSection]]] = [
-            ("General", GeneralSection),
             ("Provider & Auth", ProviderSection),
             ("Hotword", HotwordSection),
             ("Voice", VoiceSection),
@@ -104,6 +103,7 @@ class SettingsPanel(QDialog):
             ("MCP", McpSection),
             ("Memory", MemorySection),
             ("Agents", AgentsSection),
+            ("Priority", PrioritySection),
             ("Dashboard", BudgetSection),
             ("Retry Queue", RetryQueueSection),
         ]

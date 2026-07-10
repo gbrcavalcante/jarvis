@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QAction
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from src.config.settings import JarvisConfig
 from src.memory.audit import get_logger
@@ -31,10 +31,15 @@ _STATE_TOOLTIPS: dict[SessionState, str] = {
 class JarvisTray(QObject):
     """System tray icon that provides access to JARVIS settings and controls."""
 
+    # Session state updates arrive from the asyncio pipeline's background
+    # thread; Qt signals marshal them onto this object's (GUI) thread safely.
+    state_changed = pyqtSignal(object)
+
     def __init__(self, config: JarvisConfig, app: QApplication) -> None:
         super().__init__(app)
         self._config = config
         self._panel = None
+        self.state_changed.connect(self.on_session_state_changed)
 
         icon = QIcon(str(_ICON_PATH)) if _ICON_PATH.exists() else QApplication.style().standardIcon(
             QApplication.style().StandardPixmap.SP_ComputerIcon  # type: ignore[attr-defined]

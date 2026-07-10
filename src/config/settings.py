@@ -17,7 +17,7 @@ class ConfigError(ValueError):
 # Type aliases
 # ---------------------------------------------------------------------------
 
-ProviderName = Literal["claude", "codex", "gemini", "ollama"]
+ProviderName = Literal["claude", "codex", "gemini", "ollama", "hermes"]
 VoiceGender = Literal["male", "female", "neutral"]
 VoiceLanguage = Literal["en-us", "pt-br"]
 VoiceSpeechRate = Literal["slow", "normal", "fast"]
@@ -118,6 +118,9 @@ class LoggingConfig(BaseModel):
 # Top-level config
 # ---------------------------------------------------------------------------
 
+_ALL_PROVIDERS: tuple[ProviderName, ...] = ("ollama", "claude", "codex", "gemini", "hermes")
+
+
 class JarvisConfig(BaseModel):
     provider: ProviderName
     model: str
@@ -133,6 +136,18 @@ class JarvisConfig(BaseModel):
     budget: BudgetConfig = BudgetConfig()
     logging: LoggingConfig = LoggingConfig()
     vault_enabled: bool = False
+    provider_priority: list[ProviderName] = Field(default_factory=lambda: list(_ALL_PROVIDERS))
+
+    @field_validator("provider_priority")
+    @classmethod
+    def provider_priority_is_complete_permutation(
+        cls, v: list[str]
+    ) -> list[str]:
+        if set(v) != set(_ALL_PROVIDERS) or len(v) != len(_ALL_PROVIDERS):
+            raise ValueError(
+                f"provider_priority must contain each of {_ALL_PROVIDERS} exactly once, got {v}"
+            )
+        return v
 
     @model_validator(mode="before")
     @classmethod

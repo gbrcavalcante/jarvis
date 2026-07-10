@@ -108,8 +108,8 @@ class TTSEngine:
             with sf.SoundFile(
                 buf, mode="w", samplerate=22050, channels=1, format="WAV"
             ) as wav_file:
-                for chunk in self._voice.synthesize_stream_raw(text):  # type: ignore[union-attr]
-                    wav_file.buffer_write(chunk, dtype="int16")
+                for audio_chunk in self._voice.synthesize(text):  # type: ignore[union-attr]
+                    wav_file.buffer_write(audio_chunk.audio_int16_bytes, dtype="int16")
             return buf.getvalue()
 
         return await loop.run_in_executor(None, _run)
